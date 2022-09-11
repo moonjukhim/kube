@@ -40,16 +40,16 @@ else
 fi
 
 pushd "$SCRIPTDIR/productpage"
-  ${DOCKER_BUILD_ARGS} --pull -t "${PREFIX}/examples-productinfo-productpage-v1:${VERSION}" -t "${PREFIX}/examples-productinfo-productpage-v1:latest" .
+  ${DOCKER_BUILD_ARGS} --pull -t "${PREFIX}/product-info-productpage-v1:${VERSION}" -t "${PREFIX}/product-info-productpage-v1:latest" .
   #flooding
-  ${DOCKER_BUILD_ARGS} --pull -t "${PREFIX}/examples-productinfo-productpage-v-flooding:${VERSION}" -t "${PREFIX}/examples-productinfo-productpage-v-flooding:latest" --build-arg flood_factor=100 .
+  ${DOCKER_BUILD_ARGS} --pull -t "${PREFIX}/product-info-productpage-v-flooding:${VERSION}" -t "${PREFIX}/product-info-productpage-v-flooding:latest" --build-arg flood_factor=100 .
 popd
 
 pushd "$SCRIPTDIR/details"
   #plain build -- no calling external book service to fetch topics
-  ${DOCKER_BUILD_ARGS} --pull -t "${PREFIX}/examples-productinfo-details-v1:${VERSION}" -t "${PREFIX}/examples-productinfo-details-v1:latest" --build-arg service_version=v1 .
+  ${DOCKER_BUILD_ARGS} --pull -t "${PREFIX}/product-info-details-v1:${VERSION}" -t "${PREFIX}/product-info-details-v1:latest" --build-arg service_version=v1 .
   #with calling external book service to fetch topic for the book
-  ${DOCKER_BUILD_ARGS} --pull -t "${PREFIX}/examples-productinfo-details-v2:${VERSION}" -t "${PREFIX}/examples-productinfo-details-v2:latest" --build-arg service_version=v2 \
+  ${DOCKER_BUILD_ARGS} --pull -t "${PREFIX}/product-info-details-v2:${VERSION}" -t "${PREFIX}/product-info-details-v2:latest" --build-arg service_version=v2 \
 	 --build-arg enable_external_book_service=true .
 popd
 
@@ -60,29 +60,29 @@ pushd "$SCRIPTDIR/reviews"
   
   pushd reviews-wlpcfg
     #plain build -- no ratings
-    ${DOCKER_BUILD_ARGS} --pull -t "${PREFIX}/examples-productinfo-reviews-v1:${VERSION}" -t "${PREFIX}/examples-productinfo-reviews-v1:latest" --build-arg service_version=v1 . 
+    ${DOCKER_BUILD_ARGS} --pull -t "${PREFIX}/product-info-reviews-v1:${VERSION}" -t "${PREFIX}/product-info-reviews-v1:latest" --build-arg service_version=v1 . 
     #with ratings black stars
-    ${DOCKER_BUILD_ARGS} --pull -t "${PREFIX}/examples-productinfo-reviews-v2:${VERSION}" -t "${PREFIX}/examples-productinfo-reviews-v2:latest" --build-arg service_version=v2 \
+    ${DOCKER_BUILD_ARGS} --pull -t "${PREFIX}/product-info-reviews-v2:${VERSION}" -t "${PREFIX}/product-info-reviews-v2:latest" --build-arg service_version=v2 \
 	   --build-arg enable_ratings=true .
     #with ratings red stars
-    ${DOCKER_BUILD_ARGS} --pull -t "${PREFIX}/examples-productinfo-reviews-v3:${VERSION}" -t "${PREFIX}/examples-productinfo-reviews-v3:latest" --build-arg service_version=v3 \
+    ${DOCKER_BUILD_ARGS} --pull -t "${PREFIX}/product-info-reviews-v3:${VERSION}" -t "${PREFIX}/product-info-reviews-v3:latest" --build-arg service_version=v3 \
 	   --build-arg enable_ratings=true --build-arg star_color=red .
   popd
 popd
 
 pushd "$SCRIPTDIR/ratings"
-  ${DOCKER_BUILD_ARGS} --pull -t "${PREFIX}/examples-productinfo-ratings-v1:${VERSION}" -t "${PREFIX}/examples-productinfo-ratings-v1:latest" --build-arg service_version=v1 .
-  ${DOCKER_BUILD_ARGS} --pull -t "${PREFIX}/examples-productinfo-ratings-v2:${VERSION}" -t "${PREFIX}/examples-productinfo-ratings-v2:latest" --build-arg service_version=v2 .
-  ${DOCKER_BUILD_ARGS} --pull -t "${PREFIX}/examples-productinfo-ratings-v-faulty:${VERSION}" -t "${PREFIX}/examples-productinfo-ratings-v-faulty:latest" --build-arg service_version=v-faulty .
-  ${DOCKER_BUILD_ARGS} --pull -t "${PREFIX}/examples-productinfo-ratings-v-delayed:${VERSION}" -t "${PREFIX}/examples-productinfo-ratings-v-delayed:latest" --build-arg service_version=v-delayed .
-  ${DOCKER_BUILD_ARGS} --pull -t "${PREFIX}/examples-productinfo-ratings-v-unavailable:${VERSION}" -t "${PREFIX}/examples-productinfo-ratings-v-unavailable:latest" --build-arg service_version=v-unavailable .
-  ${DOCKER_BUILD_ARGS} --pull -t "${PREFIX}/examples-productinfo-ratings-v-unhealthy:${VERSION}" -t "${PREFIX}/examples-productinfo-ratings-v-unhealthy:latest" --build-arg service_version=v-unhealthy .
+  ${DOCKER_BUILD_ARGS} --pull -t "${PREFIX}/product-info-ratings-v1:${VERSION}" -t "${PREFIX}/product-info-ratings-v1:latest" --build-arg service_version=v1 .
+  ${DOCKER_BUILD_ARGS} --pull -t "${PREFIX}/product-info-ratings-v2:${VERSION}" -t "${PREFIX}/product-info-ratings-v2:latest" --build-arg service_version=v2 .
+  ${DOCKER_BUILD_ARGS} --pull -t "${PREFIX}/product-info-ratings-v-faulty:${VERSION}" -t "${PREFIX}/product-info-ratings-v-faulty:latest" --build-arg service_version=v-faulty .
+  ${DOCKER_BUILD_ARGS} --pull -t "${PREFIX}/product-info-ratings-v-delayed:${VERSION}" -t "${PREFIX}/product-info-ratings-v-delayed:latest" --build-arg service_version=v-delayed .
+  ${DOCKER_BUILD_ARGS} --pull -t "${PREFIX}/product-info-ratings-v-unavailable:${VERSION}" -t "${PREFIX}/product-info-ratings-v-unavailable:latest" --build-arg service_version=v-unavailable .
+  ${DOCKER_BUILD_ARGS} --pull -t "${PREFIX}/product-info-ratings-v-unhealthy:${VERSION}" -t "${PREFIX}/product-info-ratings-v-unhealthy:latest" --build-arg service_version=v-unhealthy .
 popd
 
 pushd "$SCRIPTDIR/mysql"
-  ${DOCKER_BUILD_ARGS} --pull -t "${PREFIX}/examples-productinfo-mysqldb:${VERSION}" -t "${PREFIX}/examples-productinfo-mysqldb:latest" .
+  ${DOCKER_BUILD_ARGS} --pull -t "${PREFIX}/product-info-mysqldb:${VERSION}" -t "${PREFIX}/product-info-mysqldb:latest" .
 popd
 
 pushd "$SCRIPTDIR/mongodb"
-  ${DOCKER_BUILD_ARGS} --pull -t "${PREFIX}/examples-productinfo-mongodb:${VERSION}" -t "${PREFIX}/examples-productinfo-mongodb:latest" .
+  ${DOCKER_BUILD_ARGS} --pull -t "${PREFIX}/product-info-mongodb:${VERSION}" -t "${PREFIX}/product-info-mongodb:latest" .
 popd
