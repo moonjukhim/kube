@@ -1,7 +1,12 @@
 1. API check 
     - Cloud Build API가 enable되어 있지 않은 경우 활성화
 
-2. 컨테이너 생성
+2. 컨테이너 생성(방법A)
+    - 2.0 디렉토리 생성
+        ```bash
+        mkdir test-image
+        cd test-image
+        ```
     - 2.1 start.sh
         ```bash
         #!/bin/sh
@@ -23,3 +28,13 @@
         ```
     - 2.5 이미지 확인
 
+3. Cloud Build를 사용한 컨테이너 생성(방법B)
+    - 3.1 cloudbuild.yaml
+        ```yaml
+        steps:
+        - name: 'gcr.io/cloud-builders/docker'
+        args: [ 'build', '-t', 'gcr.io/$PROJECT_ID/test-image', '.' ]
+        images:
+        - 'gcr.io/$PROJECT_ID/test-image'
+        ```
+    
