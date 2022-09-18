@@ -38,3 +38,5 @@
         - 'gcr.io/$PROJECT_ID/test-image'
         ```
     
+4. References
+    - https://cloud.google.com/build/docs/configuring-builds/create-basic-configuration
