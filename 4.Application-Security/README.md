@@ -34,4 +34,26 @@
         sed -i "s/\[USERNAME_2_EMAIL\]/${USER2}/" user2-role-binding.yaml
         cat user2-role-binding.yaml
         ```
-3. 접근 제어 테스트
+3. 접근 제어 테스트(User A와 B로 진행)
+    - 3.1 크리덴셜 정보 획득(User B)
+        ```bash
+        export my_zone=us-central1-a
+        export my_cluster=standard-cluster-1
+        source <(kubectl completion bash)
+        gcloud container clusters get-credentials $my_cluster --zone $my_zone
+
+        git clone [clond repository]
+
+        # This will fail.
+        kubectl apply -f ./pod1.yaml
+        ```
+    - 3.2 User A에서 역할 바인딩 생성(User A)
+        ```bash
+        kubectl apply -f user2-role-binding.yaml
+        kubectl get rolebinding --namespace production
+        ```
+    - 3.3 User B에서 다시 파드 생성
+        ```bash
+        kubectl apply -f ./pod1.yaml
+        ```
+        
