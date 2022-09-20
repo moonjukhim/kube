@@ -1,7 +1,7 @@
 1. API check 
     - Cloud Build API가 enable되어 있지 않은 경우 활성화
 
-2. 컨테이너 생성(방법A)
+2. 컨테이너 생성(## 방법A)
     - 2.0 디렉토리 생성
         ```bash
         mkdir test-image
@@ -26,9 +26,17 @@
         ```bash
         gcloud builds submit --tag gcr.io/${GOOGLE_CLOUD_PROJECT}/test-image .
         ```
-    - 2.5 이미지 확인
+    - 2.5 Container Registry에서 이미지 확인
+    - 2.6 Deployment 객체 생성
+        ```bash
+        gcloud container clusters get-credentials cluster-1 --zone us-central1-c --project [PROJECT_NAME]
 
-3. Cloud Build를 사용한 컨테이너 생성(방법B)
+        kubectl create deployment --image gcr.io/[PROJECT_NAME]/test-image test-image
+        ```
+
+---    
+
+3. Cloud Build를 사용한 컨테이너 생성(## 방법B)
     - 3.1 cloudbuild.yaml
         ```yaml
         steps:
