@@ -6,7 +6,7 @@
     sourcerepo.googleapis.com \
     containeranalysis.googleapis.com
     ```
-  - 1.2 도커 이미지가 저장될 저장소 생성
+  - 1.2 도커 이미지가 저장될 저장소 생성 (Artifact Registry)
     ```bash
     gcloud artifacts repositories create my-repository \
       --repository-format=docker \
@@ -23,7 +23,7 @@
     git config --global user.name "Your Name"
     ```
 
-2. 소스가 저장될 저장소 생성
+#### 2. 소스가 저장될 저장소 생성 (Source Repository)
   - 2.1 두 개의 리포지토리 생성
     ```bash
     gcloud source repos create hello-cloudbuild-app
@@ -32,33 +32,33 @@
   - 2.2 코드 복제
     ```bash
     gcloud source repos clone hello-cloudbuild-app
-    cp -rp demo hello-cloudbuild-app
-    cd ~/hello-cloudbuild-app
+    cp -rp demo/* hello-cloudbuild-app/
+    cd ./hello-cloudbuild-app
     PROJECT_ID=$(gcloud config get-value project)
     git remote add google \
         "https://source.developers.google.com/p/${PROJECT_ID}/r/hello-cloudbuild-app"
     ```
 
-3. Cloud Build를 사용하여 컨테이너 이미지 생성
+#### 3. Cloud Build를 사용하여 컨테이너 이미지 생성
   - 3.1 Dockerfile 확인
   - 3.2 Cloud Build를 사용하여 컨테이너 이미지 생성 후, push
     ```bash
-    cd ~/hello-cloudbuild-app
+    # cd ../hello-cloudbuild-app
     COMMIT_ID="$(git rev-parse --short=7 HEAD)"
     gcloud builds submit --tag="us-central1-docker.pkg.dev/${PROJECT_ID}/my-repository/hello-cloudbuild:${COMMIT_ID}" .
     ```
   - 3.3 Artifact Registry > Repositories에서 이미지 확인
 
-4. Countinuous Integration(CI) 파이프라인
+#### 4. Countinuous Integration(CI) 파이프라인
   - 4.1 Cloud Build의 Trigger로 이동하여 "Create Trigger" 클릭
   - 4.2 Name: "hello-cloudbuild", Repository: "hello-cloudbuild-app", Branch: "^master$" 입력
   - 4.3 트리거 하기 위해 코드 업로드
     ```bash
-    cd ~/hello-cloudbuild-app
+    #cd ~/hello-cloudbuild-app
     git push google master
     ```
 
-5. test 환경과 CD 파이프라인 생성
+#### 5. test 환경과 CD 파이프라인 생성
   - 5.1 Cloud Build가 GKE에 접속할 수 있도록 권한 부여
     ```bash
     PROJECT_NUMBER="$(gcloud projects describe ${PROJECT_ID} --format='get(projectNumber)')"
@@ -115,10 +115,10 @@
     git push google master
     ```
 
-6. Cloud Build 파이프라인 확인
+#### 6. Cloud Build 파이프라인 확인
   - 6.1 Cloud Build > Dashboard에서 확인
 
-7. 파이프라인의 실행 결과 확인
+#### 7. 파이프라인의 실행 결과 확인
   - 7.1 Kubernetes Engine > Services & Ingress에서 External IP 확인 후, 브라우저에서 확인
   - 7.2 출력되는 메시지를 변경 후 파이프라인이 자동으로 실행되는지 확인
     ```bash
@@ -131,6 +131,6 @@
     git push google master
     ```
   
-8. 테스트 환경 롤백
+#### 8. 테스트 환경 롤백
   - 8.1 Cloud Build > Dashboard
   - 8.2 
