@@ -29,9 +29,9 @@
     - 2.5 Container Registry에서 이미지 확인
     - 2.6 Deployment 객체 생성
         ```bash
-        gcloud container clusters get-credentials cluster-1 --zone us-central1-c --project [PROJECT_NAME]
+        gcloud container clusters get-credentials cluster-1 --zone us-central1-c --project $PROJECT_ID
 
-        kubectl create deployment --image gcr.io/[PROJECT_NAME]/test-image test-image
+        kubectl create deployment --image gcr.io/$PROJECT_ID/test-image test-image
         ```
 
 ---    
@@ -44,6 +44,10 @@
         args: [ 'build', '-t', 'gcr.io/$PROJECT_ID/test-image', '.' ]
         images:
         - 'gcr.io/$PROJECT_ID/test-image'
+        ```
+    - 3.2 명령을 통한 Cloud Build 실행
+        ```bash
+        gcloud builds submit --config cloudbuild.yaml .
         ```
     
 4. References
