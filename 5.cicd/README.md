@@ -31,9 +31,11 @@
     ```
   - 2.2 코드 복제
     ```bash
-    gcloud source repos clone hello-cloudbuild-app
-    cp -rp demo/* hello-cloudbuild-app/
-    cd ./hello-cloudbuild-app
+    cd ~
+    git clone https://github.com/GoogleCloudPlatform/gke-gitops-tutorial-cloudbuild \
+    hello-cloudbuild-app
+    
+    cd ~/hello-cloudbuild-app
     PROJECT_ID=$(gcloud config get-value project)
     git remote add google \
         "https://source.developers.google.com/p/${PROJECT_ID}/r/hello-cloudbuild-app"
