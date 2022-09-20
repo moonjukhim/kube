@@ -1,4 +1,4 @@
-1. 환경 설정
+#### 1. 환경 설정
   - 1.1 CloudBuild API 활성화
     ```bash
     gcloud services enable container.googleapis.com \
