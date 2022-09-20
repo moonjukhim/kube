@@ -4,9 +4,10 @@
         export my_zone=us-central1-a
         export my_cluster=standard-cluster-1
         source <(kubectl completion bash)
+        gcloud container clusters create $my_cluster --num-nodes 3 --zone $my_zone --enable-ip-alias
         gcloud container clusters get-credentials $my_cluster --zone $my_zone
         ```
-    - 1.2 deployment manifest
+    - 1.2 deployment manifest (deployment.yaml)
         ```yaml
         apiVersion: apps/v1
         kind: Deployment
@@ -41,7 +42,7 @@
 2. 디플로이먼트 스케일업
     - 2.1 수동으로 스케일업
         ```bash
-        kubectl scale --replicas=3 deployment nginx-deployment
+        kubectl scale --replicas=4 deployment nginx-deployment
         kubectl get deployments
         ```
 3. 서비스 지정
