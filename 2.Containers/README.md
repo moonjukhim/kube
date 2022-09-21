@@ -1,3 +1,11 @@
+0. 쿠버네티스 클러스터 생성
+    - 클러스터 생성
+    ```bash
+    export my_zone=us-central1-a
+    export my_cluster=standard-cluster-1
+    gcloud container clusters create $my_cluster --num-nodes 3 --zone $my_zone --enable-ip-alias
+    ```
+
 1. API check 
     - Cloud Build API가 enable되어 있지 않은 경우 활성화
 
@@ -9,8 +17,10 @@
         ```
     - 2.1 start.sh
         ```bash
+        cat > start.sh <<EOF
         #!/bin/sh
         echo "Hello, world! The time is $(date)."
+        EOF
         ```
     - 2.2 Dockerfile
         ```
