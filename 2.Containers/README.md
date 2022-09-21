@@ -1,4 +1,4 @@
-0. 쿠버네티스 클러스터 생성
+#### 0. 쿠버네티스 클러스터 생성
     - 클러스터 생성
     ```bash
     export my_zone=us-central1-a
@@ -6,10 +6,10 @@
     gcloud container clusters create $my_cluster --num-nodes 3 --zone $my_zone --enable-ip-alias
     ```
 
-1. API check 
+#### 1. API check 
     - Cloud Build API가 enable되어 있지 않은 경우 활성화
 
-2. 컨테이너 생성(## 방법A)
+#### 2. 컨테이너 생성(## 방법A)
     - 2.0 디렉토리 생성
         ```bash
         mkdir test-image
@@ -52,7 +52,7 @@
 
 ---    
 
-3. Cloud Build를 사용한 컨테이너 생성(## 방법B)
+#### 3. Cloud Build를 사용한 컨테이너 생성(## 방법B)
     - 3.1 cloudbuild.yaml
         ```yaml
         steps:
@@ -66,5 +66,5 @@
         gcloud builds submit --config cloudbuild.yaml .
         ```
     
-4. References
+#### 4. References
     - https://cloud.google.com/build/docs/configuring-builds/create-basic-configuration
