@@ -24,9 +24,11 @@
         ```
     - 2.2 Dockerfile
         ```
+        cat > Dockerfile <<EOF
         FROM alpine
         COPY start.sh /
         CMD ["/start.sh"]
+        EOF
         ```
     - 2.3 실행권한
         ```bash
