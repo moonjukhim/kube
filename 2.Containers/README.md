@@ -15,6 +15,7 @@
         mkdir test-image
         cd test-image
         ```
+
     - 2.1 start.sh
         ```bash
         cat > start.sh <<EOF
@@ -22,6 +23,7 @@
         echo "Hello, world! The time is $(date)."
         EOF
         ```
+
     - 2.2 Dockerfile
         ```
         cat > Dockerfile <<EOF
@@ -30,6 +32,7 @@
         CMD ["/start.sh"]
         EOF
         ```
+        
     - 2.3 실행권한
         ```bash
         chmod +x start.sh
