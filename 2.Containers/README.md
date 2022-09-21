@@ -36,6 +36,10 @@
         ```
     - 2.4 이미지 생성
         ```bash
+        # docker build -t moonjukhim/test-image .
+        # docker images
+        # sudo ls /var/lib/docker/image/overlay2/layerdb/sha256
+        # docker history moonjukhim/test-image
         gcloud builds submit --tag gcr.io/${GOOGLE_CLOUD_PROJECT}/test-image .
         ```
     - 2.5 Container Registry에서 이미지 확인
