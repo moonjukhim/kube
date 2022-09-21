@@ -11,63 +11,63 @@
 
 #### 2. 컨테이너 생성(## 방법A)
   - 2.0 디렉토리 생성
-        ```bash
-        mkdir test-image
-        cd test-image
-        ```
+    ```bash
+    mkdir test-image
+    cd test-image
+    ```
 
   - 2.1 start.sh
-        ```bash
-        cat > start.sh <<EOF
-        #!/bin/sh
-        echo "Hello, world! The time is $(date)."
-        EOF
-        ```
+    ```bash
+    cat > start.sh <<EOF
+    #!/bin/sh
+    echo "Hello, world! The time is $(date)."
+    EOF
+    ```
 
   - 2.2 Dockerfile
-        ```
-        cat > Dockerfile <<EOF
-        FROM alpine
-        COPY start.sh /
-        CMD ["/start.sh"]
-        EOF
-        ```
+    ```bash
+    cat > Dockerfile <<EOF
+    FROM alpine
+    COPY start.sh /
+    CMD ["/start.sh"]
+    EOF
+    ```
 
   - 2.3 실행권한
-        ```bash
-        chmod +x start.sh
-        ```
+    ```bash
+    chmod +x start.sh
+    ```
   - 2.4 이미지 생성
-        ```bash
-        # docker build -t moonjukhim/test-image .
-        # docker images
-        # sudo ls /var/lib/docker/image/overlay2/layerdb/sha256
-        # docker history moonjukhim/test-image
-        gcloud builds submit --tag gcr.io/${GOOGLE_CLOUD_PROJECT}/test-image .
-        ```
+    ```bash
+    # docker build -t moonjukhim/test-image .
+    # docker images
+    # sudo ls /var/lib/docker/image/overlay2/layerdb/sha256
+    # docker history moonjukhim/test-image
+    gcloud builds submit --tag gcr.io/${GOOGLE_CLOUD_PROJECT}/test-image .
+    ```
   - 2.5 Container Registry에서 이미지 확인
   - 2.6 Deployment 객체 생성
-        ```bash
-        gcloud container clusters get-credentials cluster-1 --zone us-central1-c --project $PROJECT_ID
+    ```bash
+    gcloud container clusters get-credentials cluster-1 --zone us-central1-c --project $PROJECT_ID
 
-        kubectl create deployment --image gcr.io/$PROJECT_ID/test-image test-image
-        ```
+    kubectl create deployment --image gcr.io/$PROJECT_ID/test-image test-image
+    ```
 
 ---    
 
 #### 3. Cloud Build를 사용한 컨테이너 생성(## 방법B)
   - 3.1 cloudbuild.yaml
-        ```yaml
-        steps:
-        - name: 'gcr.io/cloud-builders/docker'
-        args: [ 'build', '-t', 'gcr.io/$PROJECT_ID/test-image', '.' ]
-        images:
-        - 'gcr.io/$PROJECT_ID/test-image'
-        ```
+    ```yaml
+    steps:
+    - name: 'gcr.io/cloud-builders/docker'
+    args: [ 'build', '-t', 'gcr.io/$PROJECT_ID/test-image', '.' ]
+    images:
+    - 'gcr.io/$PROJECT_ID/test-image'
+    ```
   - 3.2 명령을 통한 Cloud Build 실행
-        ```bash
-        gcloud builds submit --config cloudbuild.yaml .
-        ```
+    ```bash
+    gcloud builds submit --config cloudbuild.yaml .
+    ```
     
 #### 4. References
   - https://cloud.google.com/build/docs/configuring-builds/create-basic-configuration
