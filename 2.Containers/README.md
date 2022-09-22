@@ -59,11 +59,13 @@
 #### 3. Cloud Build를 사용한 컨테이너 생성(## 방법B)
   - 3.1 cloudbuild.yaml
     ```yaml
+    cat > cloudbuild.yaml <<EOF
     steps:
     - name: 'gcr.io/cloud-builders/docker'
       args: [ 'build', '-t', 'gcr.io/$PROJECT_ID/test-image', '.' ]
     images:
     - 'gcr.io/$PROJECT_ID/test-image'
+    EOF
     ```
   - 3.2 명령을 통한 Cloud Build 실행
     ```bash
