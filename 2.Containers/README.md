@@ -3,6 +3,7 @@
     ```bash
     export my_zone=us-central1-a
     export my_cluster=standard-cluster-1
+    export PROJECT_ID=$(gcloud config get-value project)
     gcloud container clusters create $my_cluster --num-nodes 3 --zone $my_zone --enable-ip-alias
     ```
 
@@ -62,9 +63,9 @@
     cat > cloudbuild.yaml <<EOF
     steps:
     - name: 'gcr.io/cloud-builders/docker'
-      args: [ 'build', '-t', 'gcr.io/$PROJECT_ID/test-image', '.' ]
+      args: [ 'build', '-t', 'gcr.io/${GOOGLE_CLOUD_PROJECT}/test-image', '.' ]
     images:
-    - 'gcr.io/$PROJECT_ID/test-image'
+    - 'gcr.io/${GOOGLE_CLOUD_PROJECT}/test-image'
     EOF
     ```
   - 3.2 명령을 통한 Cloud Build 실행
