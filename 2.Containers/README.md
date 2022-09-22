@@ -61,7 +61,7 @@
     ```yaml
     steps:
     - name: 'gcr.io/cloud-builders/docker'
-    args: [ 'build', '-t', 'gcr.io/$PROJECT_ID/test-image', '.' ]
+      args: [ 'build', '-t', 'gcr.io/$PROJECT_ID/test-image', '.' ]
     images:
     - 'gcr.io/$PROJECT_ID/test-image'
     ```
