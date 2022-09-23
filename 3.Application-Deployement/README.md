@@ -1,5 +1,5 @@
-1. deployment manifest 파일 생성
-    - 1.1 GKE 클러스터에 연결
+#### 1. deployment manifest 파일 생성
+  - 1.1 GKE 클러스터에 연결
         ```bash
         export my_zone=us-central1-a
         export my_cluster=standard-cluster-1
@@ -7,8 +7,9 @@
         gcloud container clusters create $my_cluster --num-nodes 3 --zone $my_zone --enable-ip-alias
         gcloud container clusters get-credentials $my_cluster --zone $my_zone
         ```
-    - 1.2 deployment manifest (deployment.yaml)
-        ```yaml
+  - 1.2 deployment manifest (deployment.yaml)
+        ```bash
+        cat > deployment.yaml<<EOF
         apiVersion: apps/v1
         kind: Deployment
         metadata:
@@ -30,22 +31,23 @@
                     image: nginx:1.7.9
                     ports:
                     - containerPort: 80
+        EOF
         ```
-    - 1.3 디플로이먼트 배포
+  - 1.3 디플로이먼트 배포
         ```bash
         kubectl apply -f deployment.yaml
         ```
-    - 1.4 디플로이먼트 상태 확인
+  - 1.4 디플로이먼트 상태 확인
         ```bash
         kubectl get deployments
         ```
-2. 디플로이먼트 스케일업
+#### 2. 디플로이먼트 스케일업
     - 2.1 수동으로 스케일업
         ```bash
         kubectl scale --replicas=4 deployment nginx-deployment
         kubectl get deployments
         ```
-3. 서비스 지정
+#### 3. 서비스 지정
     - 3.1 서비스의 매니페스트
     - 3.2 서비스 생성
         ```bash
@@ -56,7 +58,7 @@
         kubectl get service nginx
         ```
     - 3.4 서비스의 EXTERNAL_IP 정보를 확인 후, 로드밸런서를 통해 서비스 확인
-4. 카나리아 배포
+#### 4. 카나리아 배포
     - 4.1 카나리아 배포를 위한 deployment 매니페스트
     - 4.2 deployment 생성
         ```bash
