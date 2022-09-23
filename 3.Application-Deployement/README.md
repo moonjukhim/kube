@@ -1,42 +1,42 @@
 #### 1. deployment manifest 파일 생성
   - 1.1 GKE 클러스터에 연결
-        ```bash
-        export my_zone=us-central1-a
-        export my_cluster=standard-cluster-1
-        source <(kubectl completion bash)
-        gcloud container clusters create $my_cluster --num-nodes 3 --zone $my_zone --enable-ip-alias
-        gcloud container clusters get-credentials $my_cluster --zone $my_zone
-        ```
+    ```bash
+    export my_zone=us-central1-a
+    export my_cluster=standard-cluster-1
+    source <(kubectl completion bash)
+    gcloud container clusters create $my_cluster --num-nodes 3 --zone $my_zone --enable-ip-alias
+    gcloud container clusters get-credentials $my_cluster --zone $my_zone
+    ```
   - 1.2 deployment manifest (deployment.yaml)
-        ```bash
-        cat > deployment.yaml<<EOF
-        apiVersion: apps/v1
-        kind: Deployment
-        metadata:
-            name: nginx-deployment
-            labels:
-                app: nginx
+    ```bash
+    cat > deployment.yaml<<EOF
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+        name: nginx-deployment
+        labels:
+            app: nginx
+    spec:
+        replicas: 3
+        selector:
+            matchLabels:
+            app: nginx
+        template:
+            metadata:
+                labels:
+                    app: nginx
         spec:
-            replicas: 3
-            selector:
-                matchLabels:
-                app: nginx
-            template:
-                metadata:
-                    labels:
-                        app: nginx
-            spec:
-                containers:
-                - name: nginx
-                    image: nginx:1.7.9
-                    ports:
-                    - containerPort: 80
-        EOF
-        ```
+            containers:
+            - name: nginx
+                image: nginx:1.7.9
+                ports:
+                - containerPort: 80
+    EOF
+    ```
   - 1.3 디플로이먼트 배포
-        ```bash
-        kubectl apply -f deployment.yaml
-        ```
+    ```bash
+    kubectl apply -f deployment.yaml
+    ```
   - 1.4 디플로이먼트 상태 확인
         ```bash
         kubectl get deployments
