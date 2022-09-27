@@ -58,6 +58,7 @@
   ```
 
 #### 5. 차트를 패키징로 생성
+  - 5.0 GitHub에 차트가 저장될 Repository 생성
   - 5.1 패키지 생성
   ```bash
   helm package .
@@ -70,11 +71,13 @@
   ```
   - 5.3 Git에 커밋
   ```bash
+  # 5.0에서 생성한 Repository 에서
   # setting/pages/GitHub Pages 설정 필요!!!
+  # 사용할 branch를 default 브랜치로 설정
   git config --global user.email "moonju.khim@gmail.com"
   git config --global user.name "moonjukhim"
-  git config --global user.password "TOKEN_STRING"
-
+  git config --global user.password "TOKEN_STRING" # PWD가 아닌 TOKEN으로 변경됨
+  # 
   git init
   git remote add origin https://github.com/moonjukhim/helm-repository.git
   git status
