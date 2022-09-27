@@ -1,7 +1,11 @@
 ### nodejs-sample app + dockerfile + helmchart
 
 #### 1. Node.js App 생성
-  - 1.1 index.js 파일
+  - 1.0 git clone
+  ```bash
+  git clone https://github.com/moonjukhim/kube.git
+  ```
+  - 1.1 index.js 파일(kube/4.Application-Security/index.js)
   - 1.2 로컬에서 테스트 시에 npm 설치
   ```bash
   npm install
@@ -9,11 +13,11 @@
   ```
 
 #### 2. Docker 이미지 생성
-  - 2.1 Dockerfile 확인
+  - 2.1 Dockerfile 확인(kube/4.Application-Security/Dockerfile)
   - 2.2 이미지 빌드
   ```bash
-  # docker build -t moonjukhim/helm-nodejs .
-  docker build -t [USERNAME]/[APPNAME]
+  # docker build -t [USERNAME]/[APPNAME]
+  docker build -t moonjukhim/helm-nodejs .
   docker images
   ```
   - 2.3 이미지 푸시
@@ -25,13 +29,15 @@
 #### 3. Helm 차트 생성
   - 3.1 차트 생성
   ```bash
+  # 처음 스스로 생성하는 경우 helm create로 생성
+  # 기존 차트의 활용(kube/4.Application-Security/helm-nodejs/helm-chart)
   helm create helm-chart
   ```
   - 3.2 values.yaml 파일 정보 확인
   ```yaml
   -- ...
   image:
-  repository: <your username>/<appname>
+  repository: <your username>/<appname> # 앞에서 생성한 이미지를 저장한 위치로 지정
   tag: latest
   -- ...
   ```
