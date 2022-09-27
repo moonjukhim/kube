@@ -12,7 +12,8 @@
   - 2.1 Dockerfile 확인
   - 2.2 이미지 빌드
   ```bash
-  docker build -t moonjukhim/helm-nodejs
+  # docker build -t moonjukhim/helm-nodejs .
+  docker build -t [USERNAME]/[APPNAME]
   docker images
   ```
   - 2.3 이미지 푸시
@@ -34,7 +35,7 @@
   tag: latest
   -- ...
   ```
-  - 3.3 service.yaml 파일 정보
+  - 3.3 helm-chart/templates/service.yaml 파일 정보
   ```yaml
   spec:
   type: {{ .Values.service.type }}
@@ -50,6 +51,6 @@
   helm install helm-nodejs .
   ```
 
-  
+
 
 
