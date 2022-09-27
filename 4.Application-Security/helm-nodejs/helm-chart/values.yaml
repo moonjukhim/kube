@@ -14,10 +14,9 @@ nameOverride: ""
 fullnameOverride: ""
 
 service:
-  type: NodePort
+  type: LoadBalancer
   exposePort: 30000
   targetPort: 8080
-  internalPort: 3000
 
 ingress:
   enabled: false
