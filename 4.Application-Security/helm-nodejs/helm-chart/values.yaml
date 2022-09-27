@@ -5,8 +5,8 @@
 replicaCount: 1
 
 image:
-  # repository: moonjukhim/helm-nodejs
-  repository: [USERNAME]/[APPNAME]
+  # repository: [USERNAME]/[APPNAME]
+  repository: moonjukhim/helm-nodejs
   tag: latest
   pullPolicy: IfNotPresent
 
