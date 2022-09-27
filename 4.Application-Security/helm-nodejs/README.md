@@ -64,14 +64,43 @@
   ```
   - 5.3 Git에 커밋
   ```bash
+  # setting/pages/GitHub Pages 설정 필요!!!
+  git config --global user.email "moonju.khim@gmail.com"
+  git config --global user.name "moonjukhim"
+  git config --global user.password "TOKEN_STRING"
+
   git init
   git remote add origin https://github.com/moonjukhim/helm-repository.git
   git status
-  git add helm-chart-0.1.0.tgz
+  git add *
   git commit -m 'initial commit'
   git push -u origin master
+  
+  # git pull [REPOSITORY] [BRANCH]
   ```
 
+#### 6. helm 리포지터리 업데이트
+  - 6.1 repository 업데이트
+  ```bash
+  # $ helm repo add YOUR_REPO_NAME YOUR_GITHUB_IO_URL
+  helm repo add moonjukhim "https://moonjukhim.github.io/helm-repository/"
+  helm repo update
+  helm repo list
+  ```
+
+#### 7. helm 설치
+  - 7.1 Repository로부터 helm 설치
+  ```bash
+  helm search repo
+  # helm install [NAME] [CHART] [flags]
+  helm install helm-chart moonjukhim/helm-chart
+  ```
+
+#### 8. Helm 차트 제거
+  - 8.1 helm 차트 제거
+  ```bash
+  helm delete helm-chart --purge
+  ```
 
 
 
