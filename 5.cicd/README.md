@@ -126,6 +126,7 @@
     ```
 
     ```yaml
+    # cloudbuild.yaml (cloudbuild-delivery.yaml)
     # [START cloudbuild-delivery]
     steps:
     # This step deploys the new version of our container image
@@ -185,6 +186,7 @@
     ```
 
     ```yaml
+    # cloudbuild.yaml (cloudbuild-trigger-cd.yaml)
     # [START cloudbuild]
     steps:
     # This step runs the unit tests on the app
@@ -279,4 +281,6 @@
   
 #### 8. 테스트 환경 롤백
   - 8.1 Cloud Build > Dashboard
-  - 8.2 
+  - 8.2 "History"에서 "hello-cloudbuild-env" 빌드 정보를 확인
+  - 8.3 가장 최근에서 바로 이전의 build 정보를 클릭
+  - 8.4 "Rebuild" 클릭
