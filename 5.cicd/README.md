@@ -168,13 +168,13 @@
     PROJECT_NUMBER="$(gcloud projects describe ${PROJECT_ID} \
       --format='get(projectNumber)')"
     cat >/tmp/hello-cloudbuild-env-policy.yaml <<EOF
-    bindings:
-    - members:
-      - serviceAccount:${PROJECT_NUMBER}@cloudbuild.gserviceaccount.com
-      role: roles/source.writer
-    EOF
-    gcloud source repos set-iam-policy \
-        hello-cloudbuild-env /tmp/hello-cloudbuild-env-policy.yaml
+bindings:
+- members:
+  - serviceAccount:${PROJECT_NUMBER}@cloudbuild.gserviceaccount.com
+  role: roles/source.writer
+EOF
+gcloud source repos set-iam-policy \
+    hello-cloudbuild-env /tmp/hello-cloudbuild-env-policy.yaml
     ```
   - 5.6 CD 파이프라인의 트리거 생성, Cloud Build > Triggers
   - 5.7 Name: "hello-cloudbuild-deploy", Source: "hello-cloudbuild-env", Repository: "^candidate$"
