@@ -7,6 +7,11 @@
     - 2.2 "Continue" 클릭
     - 2.3 "VIEW YAML"을 눌러 내용을 확인 후, 배포
 
+3. 워크로드 노출을 위한 서비스(Service)
+    - 3.1 workload메뉴에서 "nginx-1" 이름을 클릭
+    - 3.2 하단 부분의 Exposing services 부분에서 "Expose" 버튼 클릭
+    - 3.3 기본값 그대로 생성 클릭
+
 ###### 
 
 1. 명령어를 통한 클러스터 생성
