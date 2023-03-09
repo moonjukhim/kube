@@ -37,9 +37,15 @@
   - 2.2 Dockerfile
     ```bash
     cat > Dockerfile <<EOF
-    FROM alpine
-    COPY start.sh /
-    CMD ["/start.sh"]
+    FROM node:latest
+
+    COPY . /var/www
+    WORKDIR /var/www
+    RUN npm install
+
+    EXPOSE 3001
+
+    ENTRYPOINT ["node", "app.js"]
     EOF
     ```
 
