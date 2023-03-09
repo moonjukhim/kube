@@ -49,10 +49,23 @@
     EOF
     ```
 
-  - 2.3 실행권한
+  - 2.3 package.json 파일 생성
     ```bash
-    chmod +x start.sh
+    cat > package.json <<EOF
+    {
+        "name": "nodejs",
+        "version": "1.0.0",
+        "description": "",
+        "main": "app.js",
+        "scripts": {
+          "test": "echo \"Error: no test specified\" && exit 1"
+        },
+        "author": "",
+        "license": "ISC"
+      }
+    EOF
     ```
+    
   - 2.4 이미지 생성
     ```bash
     # docker build -t moonjukhim/test-image .
