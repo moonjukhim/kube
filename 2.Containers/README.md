@@ -49,7 +49,7 @@
     EOF
     ```
 
-  - 2.3 package.json 파일 생성
+  - 2.3 package.json 파일 생성  
     ```bash
     cat > package.json <<EOF
     {
@@ -65,7 +65,7 @@
       }
     EOF
     ```
-    
+
   - 2.4 이미지 생성
     ```bash
     # docker build -t moonjukhim/test-image .
