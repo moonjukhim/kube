@@ -19,9 +19,18 @@
 
   - 2.1 start.sh
     ```bash
-    cat > start.sh <<EOF
-    #!/bin/sh
-    echo "Hello, world! The time is $(date)."
+    cat > app.js <<EOF
+    const express = require('express')
+    const app = express()
+    const port = 3000
+
+    app.get('/', (req, res) => {
+        res.send("Hello World!!")
+    })
+
+    app.listen(port, () => {
+        console.log('Example App listening on port ${port}')
+    })
     EOF
     ```
 
