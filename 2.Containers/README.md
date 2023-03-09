@@ -74,7 +74,16 @@
     # docker history moonjukhim/test-image
     gcloud builds submit --tag gcr.io/${GOOGLE_CLOUD_PROJECT}/test-image .
     ```
+  
+  - 2.5 로컬에서 컨테이너 실행
+
+    ```bash
+    docker run -d -p 3001:3000 nodeapp
+    docker container list
+    ```
+
   - 2.5 Container Registry에서 이미지 확인
+
   - 2.6 Deployment 객체 생성
     ```bash
     PROJECT_ID=$(gcloud config get-value project)
