@@ -85,6 +85,35 @@
 #### 4. 카나리아 배포
 
 - 4.1 카나리아 배포를 위한 deployment 매니페스트
+
+  ```bash
+  cat > canary.yaml<<EOF
+  apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: nginx-canary
+    labels:
+      app: nginx
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: nginx
+    template:
+      metadata:
+        labels:
+          app: nginx
+          track: canary
+          Version: 1.9.1
+      spec:
+        containers:
+          - name: nginx
+            image: nginx:1.9.1
+            ports:
+              - containerPort: 80
+  EOF
+  ```
+
 - 4.2 deployment 생성
   ```bash
   kubectl apply -f canary.yaml
