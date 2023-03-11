@@ -41,6 +41,7 @@
 - 1.4 디플로이먼트 상태 확인
   ```bash
   kubectl get deployments
+  kubectl exec -it [POD_NAME] -- /bin/bash
   ```
 
 #### 2. 디플로이먼트 스케일업
