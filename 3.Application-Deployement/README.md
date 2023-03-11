@@ -54,6 +54,24 @@
 #### 3. 서비스 지정
 
 - 3.1 서비스의 매니페스트
+
+  ```bash
+  cat > service.yaml<<EOF
+  apiVersion: v1
+  kind: Service
+  metadata:
+    name: nginx
+  spec:
+    type: LoadBalancer
+    selector:
+      app: nginx
+    ports:
+      - protocol: TCP
+        port: 60000
+        targetPort: 80
+  EOF
+  ```
+
 - 3.2 서비스 생성
   ```bash
   kubectl apply -f service.yaml
