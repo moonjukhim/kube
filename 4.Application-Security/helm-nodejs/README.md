@@ -25,7 +25,7 @@ npm start
 #### 2. Docker 이미지 생성
 
 - 2.1 Dockerfile 확인(kube/4.Application-Security/helm-nodejs/Dockerfile)
-- 2.2 이미지 빌드(Docker Hub)
+- ~~2.2 이미지 빌드(Docker Hub)~~
 
 ```bash
 # to docker hub 
