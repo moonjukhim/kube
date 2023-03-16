@@ -14,7 +14,7 @@ gcloud container clusters get-credentials $my_cluster --zone $my_zone
 git clone https://github.com/moonjukhim/kube.git
 ```
 
-- 1.1 index.js 파일(kube/4.Application-Security/index.js)
+- 1.1 index.js 파일(kube/4.Application-Security/helm-nodejs/index.js)
 - 1.2 로컬에서 테스트 시에 npm 설치
 
 ```bash
@@ -24,20 +24,23 @@ npm start
 
 #### 2. Docker 이미지 생성
 
-- 2.1 Dockerfile 확인(kube/4.Application-Security/Dockerfile)
-- 2.2 이미지 빌드
+- 2.1 Dockerfile 확인(kube/4.Application-Security/helm-nodejs/Dockerfile)
+- 2.2 이미지 빌드(Docker Hub)
 
 ```bash
-# docker build -t [USERNAME]/[APPNAME]
-docker build -t moonjukhim/helm-nodejs .
-docker images
+# to docker hub 
+### docker build -t [USERNAME]/[APPNAME]
+# docker build -t moonjukhim/helm-nodejs .
+# docker images
+
+# docker login
+# docker push moonjukhim/helm-nodejs
 ```
 
-- 2.3 이미지 푸시
+- 2.3 이미지 빌드 & 푸시(Cloud Container Registry)
 
 ```bash
-docker login
-docker push moonjukhim/helm-nodejs
+gcloud builds submit --tag gcr.io/${GOOGLE_CLOUD_PROJECT}/helm-nodejs .
 ```
 
 #### 3. Helm 차트 생성
@@ -56,7 +59,7 @@ helm create helm-chart
 -- ...
 image:
 repository: <your username>/<appname> # 앞에서 생성한 이미지를 저장한 위치로 지정
-tag: latest
+tag: latest # 
 -- ...
 ```
 
@@ -81,50 +84,35 @@ helm install helm-nodejs .
 
 #### 5. 차트를 패키징로 생성
 
-- 5.0 GitHub에 차트가 저장될 Repository 생성
+- 5.0 Cloud Artifact Registry에 차트가 저장될 Repository 생성
+- 5.0 "helm-repo"로 저장소 이름 지정, Region은 "us-central1"으로 지정 후, 생성
+
 - 5.1 패키지 생성
 
 ```bash
 helm package .
 ```
 
-- 5.2 helm 초기화
+- 5.2 helm 이 레지스트리에 접속하기 위해 인증
 
 ```bash
-helm repo index .
-ls -al
+gcloud auth print-access-token | helm registry login -u oauth2accesstoken \
+--password-stdin https://us-central1-docker.pkg.dev
 # index.yaml 파일이 생성되었는지 확인
 ```
 
-- 5.3 Git에 커밋
+- 5.3 Artifact Registry에 차트 내보내기
 
 ```bash
-# 5.0에서 생성한 Repository 에서
-# setting/pages/GitHub Pages 설정 필요!!!
-# 사용할 branch를 default 브랜치로 설정
-git config --global user.email "moonju.khim@gmail.com"
-git config --global user.name "moonjukhim"
-git config --global user.password "TOKEN_STRING" # PWD가 아닌 TOKEN으로 변경됨
-#
-git init
-git remote add origin https://github.com/moonjukhim/helm-repository.git
-git status
-git add *
-git commit -m 'initial commit'
-git push -u origin master
-
-# git pull [REPOSITORY] [BRANCH]
+helm push helm-chart-0.1.0.tgz oci://us-central1-docker.pkg.dev/${GOOGLE_CLOUD_PROJECT}/helm-repo
 ```
 
-#### 6. helm 리포지터리 업데이트
+#### 6. helm 리포지터리 확인
 
-- 6.1 repository 업데이트
+- 6.1 repository 확인
 
 ```bash
-# $ helm repo add YOUR_REPO_NAME YOUR_GITHUB_IO_URL
-helm repo add moonjukhim "https://moonjukhim.github.io/helm-repository/"
-helm repo update
-helm repo list
+gcloud artifacts docker images list us-central1-docker.pkg.dev/${GOOGLE_CLOUD_PROJECT}/helm-repo
 ```
 
 #### 7. helm 설치
@@ -132,9 +120,7 @@ helm repo list
 - 7.1 Repository로부터 helm 설치
 
 ```bash
-helm search repo
-# helm install [NAME] [CHART] [flags]
-helm install helm-chart moonjukhim/helm-chart
+helm install helm-chart oci://us-central1-docker.pkg.dev/${GOOGLE_CLOUD_PROJECT}/helm-repo/helm-chart --version 0.1.0
 ```
 
 #### 8. Helm 차트 제거
