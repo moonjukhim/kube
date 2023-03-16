@@ -53,13 +53,13 @@ gcloud builds submit --tag gcr.io/${GOOGLE_CLOUD_PROJECT}/helm-nodejs .
 helm create helm-chart
 ```
 
-- 3.2 values.yaml 파일 정보 확인
+- 3.2 values.yaml 파일 정보 확인(Chart.yaml의 appVersion 정보 확인 필요!!)
 
 ```yaml
 -- ...
 image:
 repository: <your username>/<appname> # 앞에서 생성한 이미지를 저장한 위치로 지정
-tag: latest # 
+tag: latest # gcr.io/[PROJECT_NAME]/helm-nodejs 의 형태
 -- ...
 ```
 
