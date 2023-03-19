@@ -189,93 +189,93 @@
     hello-cloudbuild-env /tmp/hello-cloudbuild-env-policy.yaml
   ```
 
-  - 5.6 CD 파이프라인의 트리거 생성, Cloud Build > Triggers
-  - 5.7 Name: "hello-cloudbuild-deploy", Source: "hello-cloudbuild-env", Repository: "^candidate$"
+- 5.6 CD 파이프라인의 트리거 생성, Cloud Build > Triggers
+- 5.7 Name: "hello-cloudbuild-deploy", Source: "hello-cloudbuild-env", Repository: "^candidate$"
 
-  - 5.8 CD 파이프라인을 트리거 하기 위해 CI 파이프라인 변경
+- 5.8 CD 파이프라인을 트리거 하기 위해 CI 파이프라인 변경
 
-    ```bash
-    cd ~/hello-cloudbuild-app
-    cp cloudbuild-trigger-cd.yaml cloudbuild.yaml
-    ```
+  ```bash
+  cd ~/hello-cloudbuild-app
+  cp cloudbuild-trigger-cd.yaml cloudbuild.yaml
+  ```
 
-    ```yaml
-    # cloudbuild.yaml (cloudbuild-trigger-cd.yaml)
-    # [START cloudbuild]
-    steps:
-      # This step runs the unit tests on the app
-      - name: "python:3.7-slim"
-        id: Test
-        entrypoint: /bin/sh
-        args:
-          - -c
-          - "pip install flask && python test_app.py -v"
+  ```yaml
+  # cloudbuild.yaml (cloudbuild-trigger-cd.yaml)
+  # [START cloudbuild]
+  steps:
+    # This step runs the unit tests on the app
+    - name: "python:3.7-slim"
+      id: Test
+      entrypoint: /bin/sh
+      args:
+        - -c
+        - "pip install flask && python test_app.py -v"
 
-      # This step builds the container image.
-      - name: "gcr.io/cloud-builders/docker"
-        id: Build
-        args:
-          - "build"
-          - "-t"
-          - "us-central1-docker.pkg.dev/$PROJECT_ID/my-repository/hello-cloudbuild:$SHORT_SHA"
-          - "."
+    # This step builds the container image.
+    - name: "gcr.io/cloud-builders/docker"
+      id: Build
+      args:
+        - "build"
+        - "-t"
+        - "us-central1-docker.pkg.dev/$PROJECT_ID/my-repository/hello-cloudbuild:$SHORT_SHA"
+        - "."
 
-      # This step pushes the image to Artifact Registry
-      - name: "gcr.io/cloud-builders/docker"
-        id: Push
-        args:
-          - "push"
-          - "us-central1-docker.pkg.dev/$PROJECT_ID/my-repository/hello-cloudbuild:$SHORT_SHA"
-      # [END cloudbuild]
+    # This step pushes the image to Artifact Registry
+    - name: "gcr.io/cloud-builders/docker"
+      id: Push
+      args:
+        - "push"
+        - "us-central1-docker.pkg.dev/$PROJECT_ID/my-repository/hello-cloudbuild:$SHORT_SHA"
+    # [END cloudbuild]
 
-      # [START cloudbuild-trigger-cd]
-      # This step clones the hello-cloudbuild-env repository
-      - name: "gcr.io/cloud-builders/gcloud"
-        id: Clone env repository
-        entrypoint: /bin/sh
-        args:
-          - "-c"
-          - |
-            gcloud source repos clone hello-cloudbuild-env && \
-            cd hello-cloudbuild-env && \
-            git checkout candidate && \
-            git config user.email $(gcloud auth list --filter=status:ACTIVE --format='value(account)')
+    # [START cloudbuild-trigger-cd]
+    # This step clones the hello-cloudbuild-env repository
+    - name: "gcr.io/cloud-builders/gcloud"
+      id: Clone env repository
+      entrypoint: /bin/sh
+      args:
+        - "-c"
+        - |
+          gcloud source repos clone hello-cloudbuild-env && \
+          cd hello-cloudbuild-env && \
+          git checkout candidate && \
+          git config user.email $(gcloud auth list --filter=status:ACTIVE --format='value(account)')
 
-      # This step generates the new manifest
-      - name: "gcr.io/cloud-builders/gcloud"
-        id: Generate manifest
-        entrypoint: /bin/sh
-        args:
-          - "-c"
-          - |
-            sed "s/GOOGLE_CLOUD_PROJECT/${PROJECT_ID}/g" kubernetes.yaml.tpl | \
-            sed "s/COMMIT_SHA/${SHORT_SHA}/g" > hello-cloudbuild-env/kubernetes.yaml
+    # This step generates the new manifest
+    - name: "gcr.io/cloud-builders/gcloud"
+      id: Generate manifest
+      entrypoint: /bin/sh
+      args:
+        - "-c"
+        - |
+          sed "s/GOOGLE_CLOUD_PROJECT/${PROJECT_ID}/g" kubernetes.yaml.tpl | \
+          sed "s/COMMIT_SHA/${SHORT_SHA}/g" > hello-cloudbuild-env/kubernetes.yaml
 
-      # This step pushes the manifest back to hello-cloudbuild-env
-      - name: "gcr.io/cloud-builders/gcloud"
-        id: Push manifest
-        entrypoint: /bin/sh
-        args:
-          - "-c"
-          - |
-            set -x && \
-            cd hello-cloudbuild-env && \
-            git add kubernetes.yaml && \
-            git commit -m "Deploying image us-central1-docker.pkg.dev/$PROJECT_ID/my-repository/hello-cloudbuild:${SHORT_SHA}
-            Built from commit ${COMMIT_SHA} of repository hello-cloudbuild-app
-            Author: $(git log --format='%an <%ae>' -n 1 HEAD)" && \
-            git push origin candidate
+    # This step pushes the manifest back to hello-cloudbuild-env
+    - name: "gcr.io/cloud-builders/gcloud"
+      id: Push manifest
+      entrypoint: /bin/sh
+      args:
+        - "-c"
+        - |
+          set -x && \
+          cd hello-cloudbuild-env && \
+          git add kubernetes.yaml && \
+          git commit -m "Deploying image us-central1-docker.pkg.dev/$PROJECT_ID/my-repository/hello-cloudbuild:${SHORT_SHA}
+          Built from commit ${COMMIT_SHA} of repository hello-cloudbuild-app
+          Author: $(git log --format='%an <%ae>' -n 1 HEAD)" && \
+          git push origin candidate
 
-    # [END cloudbuild-trigger-cd]
-    ```
+  # [END cloudbuild-trigger-cd]
+  ```
 
-  - 5.9 변경된 CI 파이프라인의 cloudbuild.yaml 파일을 소스 저장소에 푸시
-    ```bash
-    cd ~/hello-cloudbuild-app
-    git add cloudbuild.yaml
-    git commit -m "Trigger CD pipeline"
-    git push google master
-    ```
+- 5.9 변경된 CI 파이프라인의 cloudbuild.yaml 파일을 소스 저장소에 푸시
+  ```bash
+  cd ~/hello-cloudbuild-app
+  git add cloudbuild.yaml
+  git commit -m "Trigger CD pipeline"
+  git push google master
+  ```
 
 #### 6. Cloud Build 파이프라인 확인
 
