@@ -175,22 +175,20 @@
   git push origin candidate
   ```
 - 5.5 Cloud Build가 소스 저장소에 접근하기 위한 권한 부여
+
   ```bash
   PROJECT_NUMBER="$(gcloud projects describe ${PROJECT_ID} \
    --format='get(projectNumber)')"
   cat >/tmp/hello-cloudbuild-env-policy.yaml <<EOF
   bindings:
-  ```
-- members:
-
-  - serviceAccount:${PROJECT_NUMBER}@cloudbuild.gserviceaccount.com
+  - members:
+    - serviceAccount:${PROJECT_NUMBER}@cloudbuild.gserviceaccount.com
     role: roles/source.writer
-    EOF
-    gcloud source repos set-iam-policy \
-     hello-cloudbuild-env /tmp/hello-cloudbuild-env-policy.yaml
-    ```
+  EOF
+  gcloud source repos set-iam-policy \
+    hello-cloudbuild-env /tmp/hello-cloudbuild-env-policy.yaml
+  ```
 
-    ```
   - 5.6 CD 파이프라인의 트리거 생성, Cloud Build > Triggers
   - 5.7 Name: "hello-cloudbuild-deploy", Source: "hello-cloudbuild-env", Repository: "^candidate$"
 
