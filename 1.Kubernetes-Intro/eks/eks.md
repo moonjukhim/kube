@@ -46,6 +46,10 @@ aws s3 cp s3://aws-tc-largeobjects/ILT-TF-200-COREKS-10-EN/lab-1/ecsdemo-crystal
 aws s3 cp s3://aws-tc-largeobjects/ILT-TF-200-COREKS-10-EN/lab-1/ecsdemo-frontend/ ~/ecsdemo-frontend/ --recursive
 aws s3 cp s3://aws-tc-largeobjects/ILT-TF-200-COREKS-10-EN/lab-1/ecsdemo-nodejs/ ~/ecsdemo-nodejs/ --recursive
 
+# git clone https://github.com/aws-containers/ecsdemo-frontend.git
+# git clone https://github.com/aws-containers/ecsdemo-nodejs.git
+# git clone https://github.com/aws-containers/ecsdemo-crystal.git
+
 # 
 cd ~/ecsdemo-nodejs
 kubectl apply -f kubernetes/deployment.yaml
