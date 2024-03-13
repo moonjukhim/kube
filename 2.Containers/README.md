@@ -1,14 +1,7 @@
 #### 0. 쿠버네티스 클러스터 생성
 
-- 0.0 클러스터를 생성하기 위해 권한 설정
-
-  - IAM 서비스에서 Roles로 이동
-  - Create role 클릭
-  - Trusted entity type:AWS service, Use case에서 "EKS" 선택, 아래 "EKS-Cluster" 선택 후, Next 클릭
-  - AmazonEKSClusterPolicy가 선택되어 있는 것을 확인 후, Next 클릭
-  - Role name에 "eksClusterRole" 입력 후, "Create role" 클릭
-
 - 0.1 클러스터 생성
+
   ```bash
   export my_zone=us-central1-a
   export my_cluster=standard-cluster-1
