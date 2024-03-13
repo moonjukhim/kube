@@ -2,11 +2,11 @@
 
 0. 클러스터를 생성하기 위해 권한 설정
 
-   - IAM 서비스에서 Roles로 이동
-   - Create role 클릭
-   - Trusted entity type:AWS service, Use case에서 "EKS" 선택, 아래 "EKS-Cluster" 선택 후, Next 클릭
-   - AmazonEKSClusterPolicy가 선택되어 있는 것을 확인 후, Next 클릭
-   - Role name에 "eksClusterRole" 입력 후, "Create role" 클릭
+   - 0.1 IAM 서비스에서 Roles로 이동
+   - 0.2 Create role 클릭
+   - 0.3 Trusted entity type:AWS service, Use case에서 "EKS" 선택, 아래 "EKS-Cluster" 선택 후, Next 클릭
+   - 0.4 AmazonEKSClusterPolicy가 선택되어 있는 것을 확인 후, Next 클릭
+   - 0.5 Role name에 "eksClusterRole" 입력 후, "Create role" 클릭
 
 1. Setting up Amazon EKS
 
