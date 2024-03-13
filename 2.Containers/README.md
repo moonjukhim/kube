@@ -8,7 +8,7 @@
     ```
 
 #### 1. API check 
-  - 1.1 Cloud Build API가 enable되어 있지 않은 경우 활성화
+  - 1.1 APIs & Services \ Cloud Build API가 enable되어 있지 않은 경우 활성화
 
 #### 2. 컨테이너 생성(## 방법A)
   - 2.0 디렉토리 생성
