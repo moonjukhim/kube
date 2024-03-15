@@ -29,7 +29,7 @@
       spec:
         containers:
           - name: nginx
-            image: nginx:1.7.9
+            image: nginx:1.7.8
             ports:
               - containerPort: 80
   EOF
@@ -111,11 +111,11 @@
         labels:
           app: nginx
           track: canary
-          Version: 1.9.1
+          Version: 1.24
       spec:
         containers:
           - name: nginx
-            image: nginx:1.9.1
+            image: moonjukhim/nginx:1.24
             ports:
               - containerPort: 80
   EOF
