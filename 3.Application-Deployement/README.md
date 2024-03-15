@@ -114,10 +114,10 @@
           Version: 1.24
       spec:
         containers:
-          - name: nginx
-            image: moonjukhim/nginx:1.24
-            ports:
-              - containerPort: 80
+        - name: nginx
+          image: moonjukhim/nginx:1.24
+          ports:
+          - containerPort: 80
   EOF
   ```
 
