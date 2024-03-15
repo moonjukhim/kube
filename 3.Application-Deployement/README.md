@@ -29,7 +29,7 @@
       spec:
         containers:
           - name: nginx
-            image: nginx:1.7.8
+            image: moonjukhim/nginx:1.7.8
             ports:
               - containerPort: 80
   EOF
