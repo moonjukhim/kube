@@ -148,4 +148,10 @@
 docker run -d --name tmp-nginx nginx
 docker ps
 docker images
+docker rmi [IMAGE_NAME]
+
+docker build -t moonjukhim/nginx:1.7.9 .
+docker push moonjukhim/nginx:1.7.9
+
+kubectl apply -f deployment.yaml
 ```
