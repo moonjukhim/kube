@@ -29,7 +29,7 @@
       spec:
         containers:
           - name: nginx
-            image: nginx:1.7.9
+            image: moonjukhim/nginx:1.7.8
             ports:
               - containerPort: 80
   EOF
@@ -41,7 +41,13 @@
 - 1.4 디플로이먼트 상태 확인
   ```bash
   kubectl get deployments
+  kubectl get pod
   kubectl exec -it [POD_NAME] -- /bin/bash
+  ```
+- 1.5 접속했던 파드에서 빠져 나오기
+
+  ```bash
+  exit
   ```
 
 #### 2. 디플로이먼트 스케일업
@@ -105,13 +111,13 @@
         labels:
           app: nginx
           track: canary
-          Version: 1.9.1
+          Version: "1.24"
       spec:
         containers:
-          - name: nginx
-            image: nginx:1.9.1
-            ports:
-              - containerPort: 80
+        - name: nginx
+          image: moonjukhim/nginx:1.24
+          ports:
+          - containerPort: 80
   EOF
   ```
 
@@ -131,3 +137,21 @@
   ```bash
   kubectl get deployments
   ```
+
+---
+
+#### Reference
+
+1. docker run
+
+```bash
+docker run -d --name tmp-nginx nginx
+docker ps
+docker images
+docker rmi [IMAGE_NAME]
+
+docker build -t moonjukhim/nginx:1.7.9 .
+docker push moonjukhim/nginx:1.7.9
+
+kubectl apply -f deployment.yaml
+```
