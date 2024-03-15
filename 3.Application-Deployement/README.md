@@ -41,7 +41,13 @@
 - 1.4 디플로이먼트 상태 확인
   ```bash
   kubectl get deployments
+  kubectl get pod
   kubectl exec -it [POD_NAME] -- /bin/bash
+  ```
+- 1.5 접속했던 파드에서 빠져 나오기
+
+  ```bash
+  exit
   ```
 
 #### 2. 디플로이먼트 스케일업
@@ -131,3 +137,15 @@
   ```bash
   kubectl get deployments
   ```
+
+---
+
+#### Reference
+
+1. docker run
+
+```bash
+docker run -d --name tmp-nginx nginx
+docker ps
+docker images
+```
