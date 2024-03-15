@@ -111,7 +111,7 @@
         labels:
           app: nginx
           track: canary
-          Version: 1.24
+          Version: "1.24"
       spec:
         containers:
         - name: nginx
