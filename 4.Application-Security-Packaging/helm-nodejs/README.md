@@ -28,7 +28,7 @@ npm start
 - ~~2.2 이미지 빌드(Docker Hub)~~
 
 ```bash
-# to docker hub 
+# to docker hub
 ### docker build -t [USERNAME]/[APPNAME]
 # docker build -t moonjukhim/helm-nodejs .
 # docker images
@@ -121,6 +121,8 @@ gcloud artifacts docker images list us-central1-docker.pkg.dev/${GOOGLE_CLOUD_PR
 
 ```bash
 helm install helm-chart oci://us-central1-docker.pkg.dev/${GOOGLE_CLOUD_PROJECT}/helm-repo/helm-chart --version 0.1.0
+# 설치된 차트 확인
+helm list
 ```
 
 #### 8. Helm 차트 제거
