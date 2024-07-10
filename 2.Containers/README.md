@@ -12,6 +12,8 @@
 #### 1. API check
 
 - 1.1 Cloud Build API가 enable되어 있지 않은 경우 활성화
+- 1.2 위의 검색하는 부분에 "APIs & Services"를 검색하고 이동
+- 1.3 +ENABLE APIS AND SERVICE를 클릭하여 Cloud Build API를 검색하고 "Enable"
 
 #### 2. 컨테이너 생성(## 방법A)
 
