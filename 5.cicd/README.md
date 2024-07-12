@@ -15,7 +15,7 @@
   ```
 - 1.3 클러스터 생성
   ```bash
-  gcloud container clusters create hello-cloudbuild \
+  gcloud container clusters create standard-cluster-1 \
     --num-nodes 1 --region us-central1
   ```
 - 1.4 git 설정
@@ -33,16 +33,21 @@
   ```
 - 2.2 코드 복제
   ```bash
+  PROJECT_ID=$(gcloud config get-value project)
+  gcloud source repos clone hello-cloudbuild-app --project=$PROJECT_ID
   cd ~
-  git clone https://github.com/GoogleCloudPlatform/gke-gitops-tutorial-cloudbuild \
-  hello-cloudbuild-app
+  gcloud storage  cp -r gs://cloud-training/gke-gitops/* hello-cloudbuild-app/  
   ```
 - 2.3 원격 리포지토리 설정
   ```bash
   cd ~/hello-cloudbuild-app
-  PROJECT_ID=$(gcloud config get-value project)
+
+  git init
+  git add . 
+  git commit -m "first commit"
+
   git remote add google \
-      "https://source.developers.google.com/p/${PROJECT_ID}/r/hello-cloudbuild-app"
+    "https://source.developers.google.com/p/${PROJECT_ID}/r/hello-cloudbuild-app"
   ```
 
 #### 3. Cloud Build를 사용하여 컨테이너 이미지 생성
@@ -72,6 +77,7 @@
 - 4.1 Cloud Build의 Trigger로 이동하여 "Create Trigger" 클릭
 - 4.2 Name: "hello-cloudbuild", Repository: "hello-cloudbuild-app", Branch: "^master$" 입력
 - 4.3 실행되는 cloudbuild.yaml 파일의 내용
+- 4.4 다음처럼 보이는 서비스 어카운트를 지정(qwiklabs-gcp-00-XX@qwiklabs-gcp-00-XX.iam.gserviceaccount.com).
 
   ```yaml
   # [START cloudbuild]
@@ -106,7 +112,7 @@
 
 - 4.3 트리거 하기 위해 코드 업로드
   ```bash
-  #cd ~/hello-cloudbuild-app
+  cd ~/hello-cloudbuild-app
   git push google master
   ```
 
@@ -191,6 +197,7 @@
 
 - 5.6 CD 파이프라인의 트리거 생성, Cloud Build > Triggers
 - 5.7 Name: "hello-cloudbuild-deploy", Source: "hello-cloudbuild-env", Repository: "^candidate$"
+- 5.7 다음처럼 보이는 서비스 어카운트를 지정(qwiklabs-gcp-00-XX@qwiklabs-gcp-00-XX.iam.gserviceaccount.com).
 
 - 5.8 CD 파이프라인을 트리거 하기 위해 CI 파이프라인 변경
 
