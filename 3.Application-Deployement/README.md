@@ -150,6 +150,8 @@ docker ps
 docker images
 docker rmi [IMAGE_NAME]
 
+# Docker Hub login
+# docker login -u [ID]
 docker build -t moonjukhim/nginx:1.7.9 .
 docker push moonjukhim/nginx:1.7.9
 
