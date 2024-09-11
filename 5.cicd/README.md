@@ -36,14 +36,21 @@
   PROJECT_ID=$(gcloud config get-value project)
   gcloud source repos clone hello-cloudbuild-app --project=$PROJECT_ID
   cd ~
-  gcloud storage  cp -r gs://cloud-training/gke-gitops/* hello-cloudbuild-app/  
+  gcloud storage  cp -r gs://cloud-training/gke-gitops/* hello-cloudbuild-app/
   ```
 - 2.3 원격 리포지토리 설정
+
   ```bash
   cd ~/hello-cloudbuild-app
 
+  REGION=us-central1
+  sed -i s/us-central1/$REGION/g cloudbuild.yaml
+  sed -i s/us-central1/$REGION/g cloudbuild-trigger-cd.yaml
+  sed -i s/us-central1/$REGION/g cloudbuild-delivery.yaml
+  sed -i s/us-central1/$REGION/g kubernetes.yaml.tpl
+
   git init
-  git add . 
+  git add .
   git commit -m "first commit"
 
   git remote add google \
@@ -54,6 +61,7 @@
 
 - 3.1 Dockerfile 확인
   ```bash
+  ### 이미 존재하기 때문에 수행하지 않아도 됨
   cat > Dockerfile<<EOF
   FROM python:3.7-slim
   RUN pip install flask
