@@ -16,7 +16,7 @@ sudo chmod +x /usr/local/bin/kubectl
 curl --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
 sudo mv -v /tmp/eksctl /usr/local/bin
 export AWS_REGION=ap-northeast-2
-# ex) export AWS_REGION=ap-northeast-2
+export EKS_VERSION="1.31"
 
 eksctl create cluster \
 --name ekscluster \
@@ -26,7 +26,7 @@ eksctl create cluster \
 --nodes-min 1 \
 --nodes-max 3 \
 --managed \
---version 1.23 \
+--version ${EKS_VERSION} \
 --region ${AWS_REGION}
 
 ```
