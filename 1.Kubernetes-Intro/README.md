@@ -32,4 +32,5 @@
     export my_nginx_pod=[your_pod_name]
     echo $my_nginx_pod
     kubectl describe pod $my_nginx_pod
+    kubectl delete deployment nginx-1   
     ```
