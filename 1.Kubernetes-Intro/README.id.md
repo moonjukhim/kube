@@ -20,6 +20,60 @@ eksctl create cluster --name ekscluster --region us-west-2
 eksctl create cluster --name ekscluster --region us-west-2 --fargate
 ```
 
+2. EKS에 컨테이너 배포하기
+
+```text
+eks에 nginx 컨테이너를 배포하려면 어떻게 해야 해?
+```
+
+```bash
+cat > deployment.yaml <<EOF
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:latest
+        ports:
+        - containerPort: 80
+EOF
+```
+
+```bash
+cat > service.yaml <<EOF
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-service
+spec:
+  selector:
+    app: nginx
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+  type: LoadBalancer
+EOF
+```
+
+```bash
+kubectl apply -f deployment.yaml
+kubectl apply -f service.yaml
+```
+
+3. 배포된 객체들 확인
+
 
 --- 
 
