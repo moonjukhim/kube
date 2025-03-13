@@ -1,10 +1,29 @@
+1. EKS cluster 생성하기 시작
+
 ```text
 eks에 fargate의 컨테이너를 배포하려면 어떻게 해야 해?
 ```
 
 ```bash
+sudo curl --location -o /usr/local/bin/kubectl https://s3.us-west-2.amazonaws.com/amazon-eks/1.23.7/2022-06-29/bin/linux/amd64/kubectl
+sudo chmod +x /usr/local/bin/kubectl
+
+curl --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
+sudo mv -v /tmp/eksctl /usr/local/bin
+```
+
+```bash
+# Managed Mode
+eksctl create cluster --name ekscluster --region us-west-2 
+
+# Fargate 
 eksctl create cluster --name ekscluster --region us-west-2 --fargate
 ```
+
+
+--- 
+
+2. 
 
 
 ```bash
