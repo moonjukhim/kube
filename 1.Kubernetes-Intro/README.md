@@ -1,36 +1,155 @@
-1. 클러스터 생성
-    - 1.1 menu에서 Kubernetes Engine > Clusters 이동
-    - 1.2 클러스터의 이름을 "standard-cluster-1"로 지정
-    - 1.3 "Create" 버튼을 클릭하고 "Standard" 모드의 클러스터 생성(5~6분정도 소요)
+1. EKS cluster 생성하기 시작
 
-2. 워크로드 배포
-    - 2.1 Kubernetes Engine > Workloads에서 "Deploy" 클릭
-    - 2.2 "Continue" 클릭
-    - 2.3 "VIEW YAML"을 눌러 내용을 확인 후, 배포
+```text
+eks에 fargate의 컨테이너를 배포하려면 어떻게 해야 해?
+```
 
-3. 워크로드 노출을 위한 서비스(Service)
-    - 3.1 workload메뉴에서 "nginx-1" 이름을 클릭
-    - 3.2 하단 부분의 Exposing services 부분에서 "Expose" 버튼 클릭
-    - 3.3 기본값 그대로 생성 클릭
+```bash
+sudo curl --location -o /usr/local/bin/kubectl https://s3.us-west-2.amazonaws.com/amazon-eks/1.23.7/2022-06-29/bin/linux/amd64/kubectl
+sudo chmod +x /usr/local/bin/kubectl
 
-###### 
+curl --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
+sudo mv -v /tmp/eksctl /usr/local/bin
+```
 
-1. 명령어를 통한 클러스터 생성
-    - 1.1 클러스터 생성
-    ```bash
-    export my_zone=us-central1-a
-    export my_cluster=standard-cluster-1
+```bash
+# Managed Mode
+eksctl create cluster --name ekscluster --region us-west-2 
 
-    gcloud container clusters create $my_cluster --num-nodes 3 --zone $my_zone --enable-ip-alias
-    ```
+# Fargate 
+eksctl create cluster --name ekscluster --region us-west-2 --fargate
+```
 
-2. 명령어를 통한 파드 배포
-    - kubectl 명령
-    ```bash
-    kubectl create deployment --image nginx nginx-1
-    kubectl get pods
-    export my_nginx_pod=[your_pod_name]
-    echo $my_nginx_pod
-    kubectl describe pod $my_nginx_pod
-    kubectl delete deployment nginx-1   
-    ```
+2. EKS에 컨테이너 배포하기
+
+```text
+eks에 nginx 컨테이너를 배포하려면 어떻게 해야 해?
+```
+
+```bash
+cat > deployment.yaml <<EOF
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:latest
+        ports:
+        - containerPort: 80
+EOF
+```
+
+```bash
+cat > service.yaml <<EOF
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-service
+spec:
+  selector:
+    app: nginx
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+  type: LoadBalancer
+EOF
+```
+
+```bash
+kubectl apply -f deployment.yaml
+kubectl apply -f service.yaml
+```
+
+3. 배포된 객체들 확인
+
+```bash
+kubectl get deployments
+kubectl get pods
+kubectl get services
+```
+
+4. 클러스터 삭제
+
+```bash
+eksctl delete cluster --name ekscluster  
+```
+
+--- 
+
+### EKS Fargate
+
+2. 
+
+
+```bash
+aws eks create-fargate-profile \
+  --fargate-profile-name ek8s-fargate-profile \
+  --cluster-name ekscluster \
+  --pod-execution-role-arn arn:aws:iam::[ACCOUNT_ID]:role/RoleForEKSFagate \
+  --selectors namespace=default
+```
+
+역할에 포함되어 있어야 하는 Trusted entities의 내용
+
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Principal": {
+                "Service": "eks-fargate-pods.amazonaws.com"
+            },
+            "Action": "sts:AssumeRole"
+        }
+    ]
+}
+```
+
+역할에 포함되어 있어야 하는 권한
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ecr:GetAuthorizationToken",
+        "ecr:BatchGetImage",
+        "ecr:BatchCheckLayerAvailability"
+      ],
+      "Resource": "arn:aws:ecr:<region>:<account-id>:repository/<repository-name>"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateNetworkInterface",
+        "ec2:DescribeNetworkInterfaces",
+        "ec2:DeleteNetworkInterface"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+      ],
+      "Resource": "arn:aws:logs:<region>:<account-id>:log-group:/aws/eks/*"
+    }
+  ]
+}
+```
