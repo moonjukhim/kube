@@ -10,11 +10,15 @@
     - Deployment 객체 생성
     - Service 객체 생성
 
-4. 애플리케이션 접근 제어와 인증
-    - 접근제어와 인증
+4. Helm을 이용한 Application 패키징
     - Helm 구조 이해
     - Helm 패키지 생성
 
-5. CI/CD
-    - 관측 가능성이란
-    - 관측 가능성을 위한 애플리케이션 구조
+5. 애플리케이션 접근 제어와 인증
+    - 접근제어와 인증
+
+6. DevOps에서 CI/CD
+
+7. CI/CD
+    - GitOps
+    - CI/CD Pipeline
