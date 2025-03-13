@@ -74,8 +74,21 @@ kubectl apply -f service.yaml
 
 3. 배포된 객체들 확인
 
+```bash
+kubectl get deployments
+kubectl get pods
+kubectl get services
+```
+
+4. 클러스터 삭제
+
+```bash
+eksctl delete cluster --name ekscluster  
+```
 
 --- 
+
+### EKS Fargate
 
 2. 
 
