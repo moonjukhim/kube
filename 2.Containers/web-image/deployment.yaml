@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+  namespace: default  # 네임스페이스 설정 (필요한 경우 변경)
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: <aws_account_id>.dkr.ecr.<region>.amazonaws.com/my-web-app:latest  # ECR 이미지 URL
+        ports:
+        - containerPort: 80
