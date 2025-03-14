@@ -9,8 +9,20 @@ sudo chmod +x /usr/local/bin/kubectl
 curl --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
 sudo mv -v /tmp/eksctl /usr/local/bin
 
-# Fargate 
-eksctl create cluster --name ekscluster --region us-west-2 --fargate
+export AWS_REGION=us-west-2
+export EKS_VERSION="1.31"
+
+eksctl create cluster \
+--name ekscluster \
+--nodegroup-name eks-nodes \
+--node-type t3.medium \
+--nodes 3 \
+--nodes-min 1 \
+--nodes-max 3 \
+--managed \
+--version ${EKS_VERSION} \
+--region ${AWS_REGION}
+
 ```
 
 
@@ -21,24 +33,31 @@ eksctl create cluster --name ekscluster --region us-west-2 --fargate
 aws ecr에 컨테이너 이미지를 업로드하는 명령어를 알려줘.
 ```
 
+```bash
+docker build -t my-web-server .
+```
+
 
 #### 3. ECR 리포지터리 생성 및 업로드
 
 ```bash
 # aws ecr create-repository --repository-name <repository-name> --region <region>
-aws ecr create-repository --repository-name repo-web-image --region us-west-2
+aws ecr create-repository --repository-name my-web-app --region us-west-2
 # aws ecr get-login-password --region <region> | docker login --username AWS --password-stdin <aws_account_id>.dkr.ecr.<region>.amazonaws.com
 aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin <aws_account_id>.dkr.ecr.us-west-2.amazonaws.com
-aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin 702995877146.dkr.ecr.us-west-2.amazonaws.com
 # 이미지 태그
-docker tag my-web-server:latest 702995877146.dkr.ecr.us-west-2.amazonaws.com/repo-web-image:latest
+docker tag my-web-server:latest <aws_account_id>.dkr.ecr.us-west-2.amazonaws.com/my-web-app:latest
 
 # 이미지 푸시
-docker push 702995877146.dkr.ecr.us-west-2.amazonaws.com/repo-web-image:latest
+docker push <aws_account_id>.dkr.ecr.us-west-2.amazonaws.com/my-web-app:latest
 ```
 
 #### 4. EKS에 컨테이너 배포
 
+```bash
+kubectl delete service my-web-app-service
+kubectl delete deployment my-web-app
+```
 ----
 
 ```text
