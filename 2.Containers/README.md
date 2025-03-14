@@ -3,17 +3,59 @@
 - 1. 클러스터 생성성
 
 ```bash
+sudo curl --location -o /usr/local/bin/kubectl https://s3.us-west-2.amazonaws.com/amazon-eks/1.23.7/2022-06-29/bin/linux/amd64/kubectl
+sudo chmod +x /usr/local/bin/kubectl
+
+curl --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
+sudo mv -v /tmp/eksctl /usr/local/bin
+
 # Fargate 
 eksctl create cluster --name ekscluster --region us-west-2 --fargate
 ```
 
-#### 1. API check
 
-- 1.1 Cloud Build API가 enable되어 있지 않은 경우 활성화
-- 1.2 위의 검색하는 부분에 "APIs & Services"를 검색하고 이동
-- 1.3 +ENABLE APIS AND SERVICE를 클릭하여 Cloud Build API를 검색하고 "Enable"
+#### 2. 컨테이너 이미지 생성성
 
-#### 2. 컨테이너 생성(## 방법A)
+```text
+기본 웹페이지를 출력하는 컨테이너 이미지를 생성하는 dockerfile을 생성해줘.
+aws ecr에 컨테이너 이미지를 업로드하는 명령어를 알려줘.
+```
+
+
+#### 3. ECR 리포지터리 생성 및 업로드
+
+```bash
+# aws ecr create-repository --repository-name <repository-name> --region <region>
+aws ecr create-repository --repository-name repo-web-image --region us-west-2
+# aws ecr get-login-password --region <region> | docker login --username AWS --password-stdin <aws_account_id>.dkr.ecr.<region>.amazonaws.com
+aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin <aws_account_id>.dkr.ecr.us-west-2.amazonaws.com
+aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin 702995877146.dkr.ecr.us-west-2.amazonaws.com
+# 이미지 태그
+docker tag my-web-server:latest 702995877146.dkr.ecr.us-west-2.amazonaws.com/repo-web-image:latest
+
+# 이미지 푸시
+docker push 702995877146.dkr.ecr.us-west-2.amazonaws.com/repo-web-image:latest
+```
+
+#### 4. EKS에 컨테이너 배포
+
+----
+
+```text
+# ChatGPT
+Query1. 기본 웹페이지를 출력하는 컨테이너 이미지를 생성하는 dockerfile을 생성해줘.
+Query2. aws ecr에 컨테이너 이미지를 업로드하는 명령어를 알려줘.
+ecr에 업로드한 컨테이미지를 eks에 배포하는 방법을 알려줘.
+
+
+
+
+
+
+
+#### 3. ECR 생성
+
+
 
 - 2.0 디렉토리 생성
 
