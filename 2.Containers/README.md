@@ -1,13 +1,11 @@
 #### 0. 쿠버네티스 클러스터 생성
 
-- 0.1 클러스터 생성
+- 1. 클러스터 생성성
 
-  ```bash
-  export my_zone=us-central1-a
-  export my_cluster=standard-cluster-1
-  export PROJECT_ID=$(gcloud config get-value project)
-  gcloud container clusters create $my_cluster --num-nodes 3 --zone $my_zone --enable-ip-alias
-  ```
+```bash
+# Fargate 
+eksctl create cluster --name ekscluster --region us-west-2 --fargate
+```
 
 #### 1. API check
 
