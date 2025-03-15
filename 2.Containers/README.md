@@ -1,30 +1,64 @@
 #### 0. 쿠버네티스 클러스터 생성
 
-- 1. 클러스터 생성성
+1. eksctl, kubectl download
 
 ```bash
+# kubectl, eksctl download
 sudo curl --location -o /usr/local/bin/kubectl https://s3.us-west-2.amazonaws.com/amazon-eks/1.23.7/2022-06-29/bin/linux/amd64/kubectl
 sudo chmod +x /usr/local/bin/kubectl
 
 curl --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
 sudo mv -v /tmp/eksctl /usr/local/bin
-
-export AWS_REGION=us-west-2
-export EKS_VERSION="1.31"
-
-eksctl create cluster \
---name ekscluster \
---nodegroup-name eks-nodes \
---node-type t3.medium \
---nodes 3 \
---nodes-min 1 \
---nodes-max 3 \
---managed \
---version ${EKS_VERSION} \
---region ${AWS_REGION}
-
 ```
 
+2. make yaml file
+
+```bash
+export AWS_REGION=us-east-1
+
+cat << EOF > eks-demo-cluster.yaml
+---
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: eks-demo # 생성할 EKS 클러스터명
+  region: ${AWS_REGION} # 클러스터를 생성할 리전
+  version: "1.27"
+
+vpc:
+  cidr: "10.0.0.0/16" # 클러스터에서 사용할 VPC의 CIDR
+  nat:
+    gateway: HighlyAvailable
+
+managedNodeGroups:
+  - name: node-group        # 클러스터의 노드 그룹명
+    instanceType: m5.large  # 클러스터 워커 노드의 인스턴스 타입
+    desiredCapacity: 3      # 클러스터 워커 노드의 갯수
+    volumeSize: 20          # 클러스터 워커 노드의 EBS 용량 (단위: GiB)
+    privateNetworking: true
+    iam:
+      withAddonPolicies:
+        imageBuilder: true # Amazon ECR에 대한 권한 추가
+        albIngress: true  # albIngress에 대한 권한 추가
+        cloudWatch: true # cloudWatch에 대한 권한 추가
+        autoScaler: true # auto scaling에 대한 권한 추가
+        ebs: true # EBS CSI Driver에 대한 권한 추가
+
+cloudWatch:
+  clusterLogging:
+    enableTypes: ["*"]
+
+iam:
+  withOIDC: true
+EOF
+```
+
+3. create cluster
+
+```bash
+eksctl create cluster -f eks-demo-cluster.yaml
+```
 
 #### 2. 컨테이너 이미지 생성성
 
@@ -36,7 +70,6 @@ aws ecr에 컨테이너 이미지를 업로드하는 명령어를 알려줘.
 ```bash
 docker build -t my-web-server .
 ```
-
 
 #### 3. ECR 리포지터리 생성 및 업로드
 
@@ -58,9 +91,10 @@ docker push <aws_account_id>.dkr.ecr.us-west-2.amazonaws.com/my-web-app:latest
 kubectl delete service my-web-app-service
 kubectl delete deployment my-web-app
 ```
-----
 
-```text
+---
+
+````text
 # ChatGPT
 Query1. 기본 웹페이지를 출력하는 컨테이너 이미지를 생성하는 dockerfile을 생성해줘.
 Query2. aws ecr에 컨테이너 이미지를 업로드하는 명령어를 알려줘.
@@ -81,7 +115,7 @@ ecr에 업로드한 컨테이미지를 eks에 배포하는 방법을 알려줘.
   ```bash
   mkdir test-image
   cd test-image
-  ```
+````
 
 - 2.1 start.sh
 
