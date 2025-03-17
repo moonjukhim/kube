@@ -18,6 +18,7 @@
     - 접근제어와 인증
 
 6. DevOps에서 CI/CD
+    - Jenkins의 소개
 
 7. CI/CD
     - GitOps
