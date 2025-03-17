@@ -1,13 +1,77 @@
-#### 1. deployment manifest 파일 생성
+#### 0. 환경 확인
 
-- 1.1 GKE 클러스터에 연결
-  ```bash
-  export my_zone=us-central1-a
-  export my_cluster=standard-cluster-1
-  source <(kubectl completion bash)
-  gcloud container clusters create $my_cluster --num-nodes 3 --zone $my_zone --enable-ip-alias
-  gcloud container clusters get-credentials $my_cluster --zone $my_zone
-  ```
+```bash
+sudo curl --location -o /usr/local/bin/kubectl https://s3.us-west-2.amazonaws.com/amazon-eks/1.23.7/2022-06-29/bin/linux/amd64/kubectl
+sudo chmod +x /usr/local/bin/kubectl
+
+curl --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
+sudo mv -v /tmp/eksctl /usr/local/bin
+```
+
+#### 1. Deployment, Service 배포
+
+Deployment, Service 배포
+  
+```bash
+aws s3 cp s3://aws-tc-largeobjects/ILT-TF-200-COREKS-10-EN/lab-1/ecsdemo-crystal/ ~/ecsdemo-crystal/ --recursive
+aws s3 cp s3://aws-tc-largeobjects/ILT-TF-200-COREKS-10-EN/lab-1/ecsdemo-frontend/ ~/ecsdemo-frontend/ --recursive
+aws s3 cp s3://aws-tc-largeobjects/ILT-TF-200-COREKS-10-EN/lab-1/ecsdemo-nodejs/ ~/ecsdemo-nodejs/ --recursive
+
+#
+cd ~/ecsdemo-nodejs
+kubectl apply -f kubernetes/deployment.yaml
+kubectl apply -f kubernetes/service.yaml
+kubectl get deployment ecsdemo-nodejs
+
+#
+cd ~/ecsdemo-crystal
+kubectl apply -f kubernetes/deployment.yaml
+kubectl apply -f kubernetes/service.yaml
+
+#
+cd ~/ecsdemo-frontend
+kubectl apply -f kubernetes/deployment.yaml
+kubectl apply -f kubernetes/service.yaml
+```
+
+#### 2. 객체 확인
+
+```bash
+kubectl get deployments
+kubectl get service ecsdemo-frontend -o wide
+```
+
+#### 3. 객체 조정
+
+```bash
+kubectl scale deployment ecsdemo-nodejs --replicas=3
+kubectl scale deployment ecsdemo-crystal --replicas=3
+kubectl get deployments
+kubectl scale deployment ecsdemo-frontend --replicas=3
+
+#
+kubectl scale deployment ecsdemo-nodejs --replicas=2
+kubectl scale deployment ecsdemo-crystal --replicas=2
+kubectl scale deployment ecsdemo-frontend --replicas=2
+```
+
+#### 4. 리소스 정리
+
+```bash
+kubectl delete deployment ecsdemo-nodejs
+kubectl delete deployment ecsdemo-crystal
+kubectl delete deployment ecsdemo-frontend
+
+kubectl delete service ecsdemo-nodejs
+kubectl delete service ecsdemo-crystal
+kubectl delete service ecsdemo-frontend
+```
+
+#### 5. Manifest 파일
+
+Deployment Manifest 파일
+
+```bash
 - 1.2 deployment manifest (deployment.yaml)
   ```bash
   cat > deployment.yaml<<EOF
@@ -34,33 +98,8 @@
               - containerPort: 80
   EOF
   ```
-- 1.3 디플로이먼트 배포
-  ```bash
-  kubectl apply -f deployment.yaml
-  ```
-- 1.4 디플로이먼트 상태 확인
-  ```bash
-  kubectl get deployments
-  kubectl get pod
-  kubectl exec -it [POD_NAME] -- /bin/bash
-  ```
-- 1.5 접속했던 파드에서 빠져 나오기
 
-  ```bash
-  exit
-  ```
-
-#### 2. 디플로이먼트 스케일업
-
-- 2.1 수동으로 스케일업
-  ```bash
-  kubectl scale --replicas=4 deployment nginx-deployment
-  kubectl get deployments
-  ```
-
-#### 3. 서비스 지정
-
-- 3.1 서비스의 매니페스트
+Service Manifest 파일
 
   ```bash
   cat > service.yaml<<EOF
@@ -78,82 +117,3 @@
         targetPort: 80
   EOF
   ```
-
-- 3.2 서비스 생성
-  ```bash
-  kubectl apply -f service.yaml
-  ```
-- 3.3 서비스 확인
-  ```bash
-  kubectl get service nginx
-  ```
-- 3.4 서비스의 EXTERNAL_IP 정보를 확인 후, 로드밸런서를 통해 서비스 확인
-
-#### 4. 카나리아 배포
-
-- 4.1 카나리아 배포를 위한 deployment 매니페스트
-
-  ```bash
-  cat > canary.yaml<<EOF
-  apiVersion: apps/v1
-  kind: Deployment
-  metadata:
-    name: nginx-canary
-    labels:
-      app: nginx
-  spec:
-    replicas: 1
-    selector:
-      matchLabels:
-        app: nginx
-    template:
-      metadata:
-        labels:
-          app: nginx
-          track: canary
-          Version: "1.24"
-      spec:
-        containers:
-        - name: nginx
-          image: moonjukhim/nginx:1.24
-          ports:
-          - containerPort: 80
-  EOF
-  ```
-
-- 4.2 deployment 생성
-  ```bash
-  kubectl apply -f canary.yaml
-  ```
-- 4.3 디플로이먼트 확인
-  ```bash
-  kubectl get deployments
-  ```
-- 4.4 기존 배포된 디플로이먼트의 레플리카 수를 0으로 설정
-  ```bash
-  kubectl scale --replicas=0 deployment nginx-deployment
-  ```
-- 4.5 디플로이먼트 확인
-  ```bash
-  kubectl get deployments
-  ```
-
----
-
-#### Reference
-
-1. docker run
-
-```bash
-docker run -d --name tmp-nginx nginx
-docker ps
-docker images
-docker rmi [IMAGE_NAME]
-
-# Docker Hub login
-# docker login -u [ID]
-docker build -t moonjukhim/nginx:1.7.9 .
-docker push moonjukhim/nginx:1.7.9
-
-kubectl apply -f deployment.yaml
-```
