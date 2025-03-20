@@ -26,7 +26,7 @@ kind: ClusterConfig
 metadata:
   name: eks-demo # 생성할 EKS 클러스터명
   region: ${AWS_REGION} # 클러스터를 생성할 리전
-  version: "1.27"
+  version: "1.31"
 
 vpc:
   cidr: "10.0.0.0/16" # 클러스터에서 사용할 VPC의 CIDR
@@ -34,10 +34,10 @@ vpc:
     gateway: HighlyAvailable
 
 managedNodeGroups:
-  - name: node-group        # 클러스터의 노드 그룹명
-    instanceType: m5.large  # 클러스터 워커 노드의 인스턴스 타입
-    desiredCapacity: 3      # 클러스터 워커 노드의 갯수
-    volumeSize: 20          # 클러스터 워커 노드의 EBS 용량 (단위: GiB)
+  - name: node-group          # 클러스터의 노드 그룹명
+    instanceType: m3.medium   # 클러스터 워커 노드의 인스턴스 타입
+    desiredCapacity: 3        # 클러스터 워커 노드의 갯수
+    volumeSize: 20            # 클러스터 워커 노드의 EBS 용량 (단위: GiB)
     privateNetworking: true
     iam:
       withAddonPolicies:
