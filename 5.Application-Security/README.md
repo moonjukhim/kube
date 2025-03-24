@@ -1,3 +1,195 @@
+#### 0. 기존 노드 그룹이 있는 EKS 클러스터
+
+
+```bash
+kubectl get nodes
+```
+
+#### 2. Aurora DB Setup
+
+1. Security Group Creation
+
+```bash
+export SG_ID=$(aws ec2 create-security-group --group-name aurora-db-sg --description "SG for Aurora DB" --vpc-id <vpc-id> --query 'GroupId' --output text)
+aws ec2 create-security-group --group-name aurora-db-sg --description "SG for Aurora DB" --vpc [VPC_ID]
+export SG_ID=[SECURITY_GROUP_ID]
+aws ec2 authorize-security-group-ingress --group-id $SG_ID --protocol tcp --port 3306 --cidr 10.0.0.0/16
+aws ec2 describe-security-groups --group-ids $SG_ID
+
+
+```
+
+2. Subnet Group 생성
+
+```bash
+aws rds create-db-subnet-group \
+    --db-subnet-group-name aurora-subnet-group \
+    --db-subnet-group-description "Subnet group for Aurora DB" \
+    --subnet-ids subnet-123abc subnet-456def
+```
+
+3. Aurora DB Creation
+
+```bash
+aws rds create-db-cluster \
+    --db-cluster-identifier my-aurora-cluster \
+    --engine aurora-mysql \
+    --master-username admin \
+    --master-user-password mypassword \
+    --vpc-security-group-ids $SG_ID \
+    --db-subnet-group-name aurora-subnet-group
+```
+
+```bash
+aws rds create-db-instance \
+    --db-instance-identifier my-aurora-instance \
+    --db-cluster-identifier my-aurora-cluster2 \
+    --engine aurora-mysql \
+    --db-instance-class db.t3.medium \
+    --publicly-accessible \
+    --db-subnet-group-name aurora-subnet-group \
+    --no-multi-az
+```
+
+IAM DB 인증이 활성화되지 않은 경우 활성화
+
+```bash
+# Create Database in POD
+kubectl apply -f exterName.yaml
+kubectl apply -f eks-rds.yaml
+
+kubectl run -it --rm --image=mysql:latest --restart=Never mysql-client -- mysql -h [ENDPOINT] -u dbadmin -pmypassword
+
+export DB_ENDPOINT=<rds_database_endpoint>
+mysql -h $DB_ENDPOINT -P 3306 -u[MY_ID] -p[MY_PASSWORD]
+```
+
+```sql
+CREATE DATABASE dev;
+CREATE TABLE dev.product (prodId VARCHAR(120), prodName VARCHAR(120));
+INSERT INTO dev.product (prodId,prodName) VALUES ('999','Mountain New Bike');
+```
+
+```sql
+CREATE USER workshop_user IDENTIFIED WITH AWSAuthenticationPlugin AS 'RDS' REQUIRE SSL;
+GRANT USAGE ON *.* TO 'workshop_user'@'%'
+GRANT ALL PRIVILEGES ON dev.* TO 'workshop_user'@'%'
+
+select user,plugin,host from mysql.user where user like '%workshop_user%';
+show grants for workshop_user; 
+```
+
+
+#### 3. Kubernetes에 애플리케이션 배포
+
+```bash
+aws eks update-kubeconfig --region us-east-1 --name eks-demo2
+
+# helm
+curl -sSL https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
+```
+
+```bash
+git clone https://github.com/aws-containers/eks-app-mesh-polyglot-demo.git
+cd eks-app-mesh-polyglot-demo
+helm install workshop workshop/helm-chart/
+
+kubectl get pods -n workshop
+export LB_NAME=$(kubectl get svc frontend -n workshop -o jsonpath="{.status.loadBalancer.ingress[*].hostname}") 
+echo $LB_NAME
+```
+
+#### 4. Create an IAM policy for DB
+
+```bash
+# Export the required Environment variables
+export RESOURCE_ID=<REPLACE_WITH_THE_RESOURCE_ID>  # RDS \ Cluster \ Configuration
+export AWS_ACCOUNT=<REPLACE_WITH_AWS_ACCOUNT_ID>
+export AWS_REGION=us-east-1
+
+# Create the IAM Policy File
+cat << EOF > iam_policy.json
+{
+   "Version": "2012-10-17",
+   "Statement": [
+      {
+         "Effect": "Allow",
+         "Action": [
+             "rds-db:connect"
+         ],
+         "Resource": [
+             "arn:aws:rds-db:$AWS_REGION:$AWS_ACCOUNT:dbuser:$RESOURCE_ID/workshop_user"
+         ]
+      }
+   ]
+}
+EOF
+
+# Create the IAM Policy
+aws iam create-policy \
+  --region ${AWS_REGION} \
+  --policy-name "Aurora_IAM_Policy" \
+  --policy-document file://iam_policy.json
+ 
+ 
+# Export the Policy ARN 
+export AURORA_IAM_POLICY_ARN=$(aws --region ${AWS_REGION} iam list-policies --query 'Policies[?PolicyName==`'Aurora_IAM_Policy'`].Arn' --output text)
+
+```
+
+
+#### Create an IAM role amd map
+
+```bash
+# Create an IAM OIDC provider for your cluster
+# eksctl utils associate-iam-oidc-provider \
+#  --region=$AWS_REGION \
+#  --cluster=$EKS_CLUSTER \
+#  --approve
+
+export EKS_CLUSTER=eks-demo2
+eksctl create iamserviceaccount \
+  --cluster $EKS_CLUSTER \
+  --name aurora-irsa \
+  --namespace workshop \
+  --attach-policy-arn $AURORA_IAM_POLICY_ARN \
+  --override-existing-serviceaccounts \
+  --approve
+
+kubectl describe sa aurora-irsa -n workshop
+
+```
+
+#### Redeploy Helm Chart
+
+```bash
+vi workshop/helm-chart/values-aurora.yaml
+
+## change strings from to
+# name: DATABASE_SERVICE_URL  <<<<-----
+# name: DB_REGION             <<<<-----
+```
+
+```bash
+helm upgrade \
+    -f workshop/helm-chart/values-aurora.yaml \
+    workshop \
+    workshop/helm-chart/
+
+# verify
+kubectl get pods -n workshop
+
+export LB_NAME=$(kubectl get svc frontend -n workshop -o jsonpath="{.status.loadBalancer.ingress[*].hostname}") 
+echo $LB_NAME
+```
+
+
+
+----
+
+
+
+
 #### EFS 설치 및 설정
 
 ```bash
