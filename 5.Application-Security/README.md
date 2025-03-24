@@ -138,7 +138,7 @@ export AURORA_IAM_POLICY_ARN=$(aws --region ${AWS_REGION} iam list-policies --qu
 ```
 
 
-#### Create an IAM role amd map
+#### 5. Create an IAM role amd map
 
 ```bash
 # Create an IAM OIDC provider for your cluster
@@ -160,7 +160,7 @@ kubectl describe sa aurora-irsa -n workshop
 
 ```
 
-#### Redeploy Helm Chart
+#### 6. Redeploy Helm Chart
 
 ```bash
 vi workshop/helm-chart/values-aurora.yaml
@@ -184,6 +184,11 @@ echo $LB_NAME
 ```
 
 
+#### 7. Clearn up
+
+- Aurora_IAM_Policy
+- eksworkspace-admin Role
+- aurora-db-sg
 
 ----
 
