@@ -313,3 +313,7 @@ kubectl exec -ti app2 -- tail -f /data/out1.txt
 ```bash
 kubectl delete -f specs/
 ```
+
+---
+
+https://aws.amazon.com/ko/blogs/containers/using-iam-database-authentication-with-workloads-running-on-amazon-eks/
