@@ -69,4 +69,6 @@ node {
 ```
 
 
+---
 
+[GitOps](https://www.eksworkshop.com/docs/automation/gitops/)
