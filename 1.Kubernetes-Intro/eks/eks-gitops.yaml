@@ -1,0 +1,1618 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: "Lab 3: Continuous Deployment and GitOps"
+
+Parameters:
+  LabVpcCidr:
+    Type: String
+    Default: 10.10.0.0/16
+    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|2[0-8]))$
+
+  BastionHostSubnetCidr:
+    Type: String
+    Default: 10.10.16.0/20
+    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|2[0-8]))$
+
+  JenkinsSubnetCidr:
+    Type: String
+    Default: 10.10.32.0/20
+    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|2[0-8]))$
+
+  EksPublicSubnet1Cidr:
+    Type: String
+    Default: 10.10.48.0/20
+    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|2[0-8]))$
+
+  EksPublicSubnet2Cidr:
+    Type: String
+    Default: 10.10.64.0/20
+    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|2[0-8]))$
+
+  EksPublicSubnet3Cidr:
+    Type: String
+    Default: 10.10.80.0/20
+    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|2[0-8]))$
+
+  LatestAL2AmiId: # Locate latest Amazon Linux 2 AMI from public parameter store
+    Type: "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>"
+    Default: "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64"
+
+  KubernetesVersion:
+    Description: The Kubernetes version to deploy on the Amazon EKS cluster
+    Type: String
+    Default: "1.29"
+
+  ImageRepoName:
+    Type: String
+    #Default: eks-workshop-demo/test-detail
+    Default: eks-gitops-demo
+    MinLength: 1
+    MaxLength: 100
+
+  BranchName:
+    Description: CodeCommit branch name
+    Type: String
+    Default: main
+
+  S3PathPrefix:
+    Description: 'The path prefix where lab resources are stored'
+    Type: String
+    Default: "courses/ILT-TF-200-COREKS/v2.1.11.prod-38c48781/lab-3-gitops"
+
+Resources:
+
+  # Start - Create VPC, subnets, internet gateway, and routes
+  LabVpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref LabVpcCidr
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      InstanceTenancy: default
+      Tags:
+      - Key: Name
+        Value: Lab VPC
+
+  BastionHostSubnet:
+    Type: AWS::EC2::Subnet
+    DependsOn:
+    - AttachGateway
+    Properties:
+      CidrBlock: !Ref BastionHostSubnetCidr
+      VpcId: !Ref LabVpc
+      MapPublicIpOnLaunch: true
+      AvailabilityZone:
+        Fn::Select:
+        - 0
+        - Fn::GetAZs: ""
+      Tags:
+      - Key: Name
+        Value: !Sub Bastion Host Subnet - ${AWS::Region}a
+
+  JenkinsSubnet:
+    Type: AWS::EC2::Subnet
+    DependsOn:
+    - AttachGateway
+    Properties:
+      CidrBlock: !Ref JenkinsSubnetCidr
+      VpcId: !Ref LabVpc
+      MapPublicIpOnLaunch: true
+      AvailabilityZone:
+        Fn::Select:
+        - 0
+        - Fn::GetAZs: ""
+      Tags:
+      - Key: Name
+        Value: !Sub JenkinsSubnet - ${AWS::Region}a
+
+  EksPublicSubnet1:
+    Type: AWS::EC2::Subnet
+    DependsOn:
+    - AttachGateway
+    Properties:
+      CidrBlock: !Ref EksPublicSubnet1Cidr
+      VpcId: !Ref LabVpc
+      MapPublicIpOnLaunch: true
+      AvailabilityZone:
+        Fn::Select:
+        - 0
+        - Fn::GetAZs: ""
+      Tags:
+      - Key: Name
+        Value: !Sub EKS Public Subnet 1 - ${AWS::Region}a
+
+  EksPublicSubnet2:
+    Type: AWS::EC2::Subnet
+    DependsOn:
+    - AttachGateway
+    Properties:
+      CidrBlock: !Ref EksPublicSubnet2Cidr
+      VpcId: !Ref LabVpc
+      MapPublicIpOnLaunch: true
+      AvailabilityZone:
+        Fn::Select:
+        - 1
+        - Fn::GetAZs: ""
+      Tags:
+      - Key: Name
+        Value: !Sub EKS Public Subnet 2 - ${AWS::Region}b
+
+  EksPublicSubnet3:
+    Type: AWS::EC2::Subnet
+    DependsOn:
+    - AttachGateway
+    Properties:
+      CidrBlock: !Ref EksPublicSubnet3Cidr
+      VpcId: !Ref LabVpc
+      MapPublicIpOnLaunch: true
+      AvailabilityZone:
+        Fn::Select:
+        - 2
+        - Fn::GetAZs: ""
+      Tags:
+      - Key: Name
+        Value: !Sub EKS Public Subnet 3 - ${AWS::Region}c
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+      - Key: Name
+        Value: Internet Gateway
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref LabVpc
+      InternetGatewayId: !Ref InternetGateway
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    DependsOn:
+    - BastionHostSubnet
+    - JenkinsSubnet
+    - EksPublicSubnet1
+    - EksPublicSubnet2
+    - EksPublicSubnet3
+    Properties:
+      VpcId: !Ref LabVpc
+
+  BastionHostSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    DependsOn:
+    - PublicRoute
+    Properties:
+      SubnetId: !Ref BastionHostSubnet
+      RouteTableId: !Ref PublicRouteTable
+
+  JenkinsSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    DependsOn: PublicRoute
+    Properties:
+      SubnetId: !Ref JenkinsSubnet
+      RouteTableId: !Ref PublicRouteTable
+
+  EksPublicSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref EksPublicSubnet1
+      RouteTableId: !Ref PublicRouteTable
+
+  EksPublicSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    DependsOn: PublicRoute
+    Properties:
+      SubnetId: !Ref EksPublicSubnet2
+      RouteTableId: !Ref PublicRouteTable
+
+  EksPublicSubnet3RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    DependsOn: PublicRoute
+    Properties:
+      SubnetId: !Ref EksPublicSubnet3
+      RouteTableId: !Ref PublicRouteTable
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  BastionHostEip:
+    Type: AWS::EC2::EIP
+    DependsOn: BastionHost
+    Properties:
+      InstanceId: !Ref BastionHost
+
+  JenkinsEip:
+    Type: AWS::EC2::EIP
+    DependsOn: JenkinsHost
+    Properties:
+      InstanceId: !Ref JenkinsHost
+  # End - Create VPC, subnets (bastion host, EKS public and private), internet gateway, and routes
+
+  #Start - Create security groups
+  BastionHostSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: Bastion host access
+      GroupDescription: Network access rules applied to the bastion host
+      VpcId: !Ref LabVpc
+      SecurityGroupEgress:
+      - IpProtocol: tcp
+        CidrIp: 0.0.0.0/0
+        FromPort: 80
+        ToPort: 80
+        Description: Allow HTTP connections to anywhere for downloading files
+      - IpProtocol: tcp
+        CidrIp: 0.0.0.0/0
+        FromPort: 443
+        ToPort: 443
+        Description: Allow HTTPS connections to anywhere for downloading files
+      - IpProtocol: tcp
+        CidrIp: !Ref EksPublicSubnet1Cidr
+        FromPort: 0
+        ToPort: 65535
+        Description: Allow connections to EKS Public Subnet 1 on any port
+      - IpProtocol: tcp
+        CidrIp: !Ref EksPublicSubnet2Cidr
+        FromPort: 0
+        ToPort: 65535
+        Description: Allow connections to EKS Public Subnet 2 on any port
+      - IpProtocol: tcp
+        CidrIp: !Ref EksPublicSubnet3Cidr
+        FromPort: 0
+        ToPort: 65535
+        Description: Allow connections to EKS Public Subnet 3 on any port
+      - IpProtocol: tcp
+        CidrIp: 0.0.0.0/0
+        FromPort: 22
+        ToPort: 22
+        Description: Allow SSH connections to anywhere for CodeCommit
+
+  JenkinsSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: Jenkins host access
+      GroupDescription: Network access rules applied to Jenkins
+      VpcId: !Ref LabVpc
+      SecurityGroupEgress:
+      - IpProtocol: tcp
+        CidrIp: 0.0.0.0/0
+        FromPort: 80
+        ToPort: 80
+        Description: Allow HTTP connections to anywhere for downloading files
+      - IpProtocol: tcp
+        CidrIp: 0.0.0.0/0
+        FromPort: 443
+        ToPort: 443
+        Description: Allow HTTPS connections to anywhere for downloading files
+      - IpProtocol: tcp
+        CidrIp: !Ref EksPublicSubnet1Cidr
+        FromPort: 0
+        ToPort: 65535
+        Description: Allow connections to EKS Public Subnet 1 on any port
+      - IpProtocol: tcp
+        CidrIp: !Ref EksPublicSubnet2Cidr
+        FromPort: 0
+        ToPort: 65535
+        Description: Allow connections to EKS Public Subnet 2 on any port
+      - IpProtocol: tcp
+        CidrIp: !Ref EksPublicSubnet3Cidr
+        FromPort: 0
+        ToPort: 65535
+        Description: Allow connections to EKS Public Subnet 3 on any port
+      - IpProtocol: tcp
+        CidrIp: 0.0.0.0/0
+        FromPort: 0
+        ToPort: 8080
+        Description: Allow traffic to default Jenkins port
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 80
+        ToPort: 80
+        CidrIp: 0.0.0.0/0
+        Description: Allow HTTP connections to anywhere for downloading files
+
+
+  ControlPlaneSecurityGroup: # Rules are populated automatically when the cluster is created
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: EKS control plane access
+      GroupDescription: Cluster communication with worker nodes
+      VpcId: !Ref LabVpc
+      SecurityGroupIngress:
+        # Allow inbound traffic from the bastion host security group on any port
+      - IpProtocol: "-1"
+        SourceSecurityGroupId: !Ref BastionHostSecurityGroup
+        Description: Allow connections from bastion host subnet on any port
+      - IpProtocol: "-1"
+        CidrIp: !Ref EksPublicSubnet1Cidr
+        Description: Allow connections from EKS Public Subnet 1 on any port
+      - IpProtocol: "-1"
+        CidrIp: !Ref EksPublicSubnet2Cidr
+        Description: Allow connections from EKS Public Subnet 2 on any port
+      - IpProtocol: "-1"
+        CidrIp: !Ref EksPublicSubnet3Cidr
+        Description: Allow connections from EKS Public Subnet 3 on any port
+  # End - Create security groups
+
+  # Start - Create bastion host IAM instance profile.
+  BastionHostInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: BastionHostIamInstanceProfile
+      Roles:
+      - !Ref BastionHostIamRole
+
+  BastionHostIamRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: BastionHostIamRole
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Action:
+          - sts:AssumeRole
+          Effect: Allow
+          Principal:
+            Service:
+            - ec2.amazonaws.com
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/ReadOnlyAccess
+      - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+      Policies:
+      - PolicyName: ResumeSession
+        PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Resource:
+            - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:session/*
+            - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:instance/*
+            - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:document/SSM-SessionManagerRunShell
+            Effect: Allow
+            Action:
+            - ssm:ResumeSession
+      - PolicyName: codeCommit
+        PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Resource: !Sub arn:aws:codecommit:${AWS::Region}:${AWS::AccountId}:main/*
+            Effect: Allow
+            Action:
+            - codecommit:UpdateDefaultBranch
+            - codecommit:CreateBranch
+            - codecommit:CreateRepository
+            - codecommit:ListBranches
+            - codecommit:GitPull
+            - codecommit:PutFile
+            - codecommit:CreateCommit
+            - codecommit:ListRepositories
+            - codecommit:GetCommit
+            - codecommit:GetComment
+            - codecommit:GetCommitHistory
+            - codecommit:GetRepository
+            - codecommit:GetBranch
+            - codecommit:GitPush
+            - codecommit:DeleteFile
+            - codecommit:DeleteBranch
+      - PolicyName: sshKeys
+        PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Resource:
+            - !Sub arn:aws:iam::${AWS::AccountId}:user/ecrUser
+            - !Sub arn:aws:iam::${AWS::AccountId}:user/gitUser
+            Effect: Allow
+            Action:
+            - iam:UploadSSHPublicKey
+            - iam:GetSSHPublicKey
+            - iam:DeleteSSHPublicKey
+            - iam:UpdateSSHPublicKey
+      - PolicyName: helmS3Policy
+        PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Resource: !Sub arn:aws:s3:::my-helm-chart-*/*
+            Effect: Allow
+            Action:
+            - s3:PutObjectAcl
+            - s3:PutObject
+            - s3:GetObjectAcl
+            - s3:GetObject
+            - s3:DeleteObject
+            - s3:ListBucket
+      - PolicyName: secretsManager
+        PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Resource: !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:JenkinsPassword*
+            Effect: Allow
+            Action:
+            - secretsmanager:GetSecretValue
+      - PolicyName: accessKeys
+        PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Resource: !Sub arn:aws:iam::${AWS::AccountId}:user/ecrUser
+            Effect: Allow
+            Action:
+            - iam:CreateAccessKey
+
+  JenkinsInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: JenkinsIamInstanceProfile
+      Roles:
+      - !Ref JenkinsIamRole
+
+  JenkinsIamRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: JenkinsIamRole
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Action:
+          - sts:AssumeRole
+          Effect: Allow
+          Principal:
+            Service:
+            - ec2.amazonaws.com
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/ReadOnlyAccess
+      - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+      - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess
+      Policies:
+      - PolicyName: ResumeSession
+        PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Resource:
+            - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:session/*
+            - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:instance/*
+            - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:document/SSM-SessionManagerRunShell
+            Effect: Allow
+            Action:
+              - ssm:ResumeSession
+      - PolicyName: sshKeys
+        PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Resource: !Sub arn:aws:iam::${AWS::AccountId}:user/gitUser
+            Effect: Allow
+            Action:
+            - iam:UploadSSHPublicKey
+            - iam:GetSSHPublicKey
+            - iam:DeleteSSHPublicKey
+            - iam:UpdateSSHPublicKey
+
+  BastionHostBuildPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: BastionHostBuildPolicy
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          # Allow bastion host to assume BastionHostIamRole role
+        - Effect: Allow
+          Action:
+          - sts:AssumeRole
+          Resource:
+          - !GetAtt BastionHostIamRole.Arn
+        - Effect: Allow
+          Action:
+          - autoscaling:AttachInstances
+          - autoscaling:AttachLoadBalancerTargetGroups
+          - autoscaling:AttachLoadBalancers
+          - autoscaling:CreateAutoScalingGroup
+          - autoscaling:CreateLaunchConfiguration
+          - autoscaling:CreateOrUpdateTags
+          - autoscaling:SetDesiredCapacity
+          - autoscaling:UpdateAutoScalingGroup
+          - cloudformation:CreateStack
+          - ec2:AllocateAddress
+          - ec2:AuthorizeSecurityGroupEgress
+          - ec2:AuthorizeSecurityGroupIngress
+          - ec2:CreateLaunchTemplate
+          - ec2:CreateSecurityGroup
+          - ec2:CreateTags
+          - ec2:ModifySubnetAttribute
+          - ec2:ModifyVpcAttribute
+          - ec2:RunInstances
+          - eks:CreateCluster
+          - eks:CreateNodegroup
+          - eks:TagResource
+          - eks:UpdateClusterConfig
+          - eks:UpdateNodegroupConfig
+          - iam:AddRoleToInstanceProfile
+          - iam:AttachRolePolicy
+          - iam:CreateServiceLinkedRole
+          - iam:DeleteRolePolicy
+          - iam:PassRole
+          - iam:DeleteAccessKey
+          - ssm:GetParameter
+          - s3:PutObject
+          - s3:GetObjectAcl
+          - s3:GetObject
+          - s3:ListAllMyBuckets
+          - s3:ListBucket
+          - s3:DeleteObject
+          - s3:PutObjectAcl
+          - ecr:PutImageTagMutability
+          - ecr:CompleteLayerUpload
+          - ecr:TagResource
+          - ecr:UploadLayerPart
+          - ecr:InitiateLayerUpload
+          - ecr:PutImage
+          Resource: "*"
+            #added condition to prevent privilege escalation
+          Condition:
+            StringNotEquals:
+              aws:username: awsstudent
+        - Effect: Allow
+          Action:
+          - iam:CreateRole
+          Resource:
+          - !Sub arn:aws:iam::${AWS::AccountId}:role/eksctl-dev-cluster*
+          - !Sub arn:aws:iam::${AWS::AccountId}:role/eksctl-eks-cluster*
+        - Effect: Allow
+          Action:
+          - ssm:UpdateDocument
+          - ssm:UpdateDocumentDefaultVersion
+          - ssm:UpdateDocumentMetadata
+          - ssm:CreateDocument
+          - ssm:DeleteDocument
+          Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:document/SSM-SessionManagerRunShell
+        - Effect: Allow
+          Action:
+            - ecr:InitiateLayerUpload
+            - ecr:UploadLayerPart
+            - ecr:CompleteLayerUpload 
+            - ecr:PutImage
+            - ecr:CreateRepository
+          Resource:
+            - !Sub "arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:repository/eks-gitops-demo"
+            - !Sub "arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:repository/eks-gitops-demo/*"
+        - Effect: Allow
+          Action:
+            - ssm:PutParameter
+            - ssm:AddTagsToResource
+          Resource:
+            - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/*"
+        - Effect: Allow
+          Action:
+          - iam:CreateAccessKey
+          Resource: !Sub arn:aws:iam::${AWS::AccountId}:user/ecrUser
+        - Effect: Allow
+          Action:
+          - iam:UploadSSHPublicKey
+          - iam:GetSSHPublicKey
+          - iam:DeleteSSHPublicKey
+          - iam:UpdateSSHPublicKey
+          Resource:
+          - !Sub arn:aws:iam::${AWS::AccountId}:user/ecrUser
+          - !Sub arn:aws:iam::${AWS::AccountId}:user/gitUser
+        - Effect: Allow
+          Action:
+          - cloudformation:CreateStack
+          Resource:
+          - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/eksctl-eks-cluster-cluster/*
+
+      Roles:
+      - !Ref BastionHostIamRole
+  # End - Create bastion host IAM instance profile
+
+  JenkinsBuildPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: JenkinsBuildPolicy
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          # Allow Jenkins host to assume JenkinsIamRole role
+        - Effect: Allow
+          Action:
+          - sts:AssumeRole
+          Resource:
+          - !GetAtt JenkinsIamRole.Arn
+        - Effect: Allow
+          Action:
+          - iam:AddRoleToInstanceProfile
+          - iam:AttachRolePolicy
+          - iam:CreateServiceLinkedRole
+          - iam:DeleteRolePolicy
+          - iam:PassRole
+          - ssm:GetParameter
+          Resource: "*"
+            #added condition to prevent privilege escalation
+          Condition:
+            StringNotEquals:
+              aws:username: awsstudent
+        - Effect: Allow
+          Action:
+          - ssm:UpdateDocument*
+          - ssm:CreateDocument*
+          - ssm:DeleteDocument*
+          Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:document/SSM-SessionManagerRunShell
+        - Effect: Allow
+          Action:
+          - ecr:InitiateLayerUpload
+          - ecr:UploadLayerPart
+          - ecr:CompleteLayerUpload
+          - ecr:PutImage
+          Resource:
+            - !Sub "arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:repository/eks-gitops-demo"
+            - !Sub "arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:repository/eks-gitops-demo/*"
+        - Effect: Allow
+          Action:
+          - secretsmanager:GetSecretValue
+          - secretsmanager:ListSecrets
+          Resource: !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:JenkinsPassword*
+        - Effect: Allow
+          Action:
+          - ssm:PutParameter
+          - ssm:AddTagsToResource
+          Resource:
+            - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/*"
+        - Effect: Allow
+          Action:
+          - ecr:GetAuthorizationToken
+          - ecr:BatchCheckLayerAvailability
+          - ecr:GetDownloadUrlForLayer
+          - ecr:BatchGetImage
+          Resource: "*"
+      Roles:
+      - !Ref JenkinsIamRole
+  # End - Create bastion host IAM instance profile
+
+  # Start - Create EKS IAM roles
+  EksClusterRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: EksClusterRole
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - eks.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/AmazonEKSClusterPolicy
+      - arn:aws:iam::aws:policy/ReadOnlyAccess
+
+  EksNodeInstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: EksNodeRole
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - ec2.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
+      - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
+      - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+
+  # End - Create EKS IAM roles
+
+  # Start - Create S3 Bucket for use as Helm Repo
+  HelmS3Bucket:
+    Type: 'AWS::S3::Bucket'
+    Properties:
+      BucketName: !Sub my-helm-chart-${AWS::AccountId}
+      PublicAccessBlockConfiguration: #Sets "Block all public access" to "On" for the bucket
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+  # End - S3 Helm Bucket
+
+  # Start - Create bastion host
+  BastionHost:
+    Type: AWS::EC2::Instance
+    DependsOn:
+    - gitUser
+    - ecrUser
+    - ImageRepo
+    - HelmS3Bucket
+    - ApplicationURL
+    - EcrUserAccessKey
+    - EcrUserSecretAccessKey
+    - SSHKEYID
+    - BastionHostSubnetRouteTableAssociation
+      # NOTE - Additional RouteTableAssociation are included because the eksctl create-cluster command launches nodes in these subnets
+    - EksPublicSubnet1RouteTableAssociation
+    - EksPublicSubnet2RouteTableAssociation
+    - EksPublicSubnet3RouteTableAssociation
+      # - ImageRepoAWSTC
+    Metadata:
+      AWS::CloudFormation::Init:
+        configSets:
+          InstallTools:
+          - "update-yum"
+          - "install-python3"
+          - "create-kube-directory"
+          - "install-aws-cli-v2"
+          - "install-kubectl"
+          - "install-eksctl"
+          - "install-other-tools"
+          - "install-helm"
+          - "install-docker"
+          - "install-argocd-cli"
+          CreateSsmUser:
+          - "create-ssm-user"
+          ChangeDirectoryOwner:
+          - "change-ssm-user-directory-owner"
+          IncreaseSessionMgrTimeout:
+          - "inc-session-timeout"
+          CreateVariablesScript:
+          - "create-variables-script"
+          CreateKeys:
+          - "create-ssh-keys-for-codecommit"
+          - "create-access-keys"
+          EksctlCreateCluster:
+          - "create-cluster-config"
+          - "create-eks-cluster"
+          AppAndJenkins:
+          - "copy-app-from-s3"
+            # Added from COREKS-1 lab2
+          - "docker-load-image"
+            # Added from COREKS-1 lab2
+            #- "push-to-ecr"
+            # Added from COREKS-1 lab2
+          - "create-sample-files"
+          - "copy-jenkinsfile-from-s3"
+          - "change-owner"
+          InitializeS3Bucket:
+          #  - "create-helm-repo"
+          - "upload-chart-to-s3"
+          ModifyInstancePermissions:
+          - "remove-lab-build-policy"
+        # Start - InstallTools config set commands
+        update-yum:
+          commands:
+            update-yum:
+              command: yum update -y
+              ignoreErrors: false
+        install-python3:
+          commands:
+            install-python3:
+              command: yum install -y python3
+              ignoreErrors: false
+        create-kube-directory:
+          commands:
+            a-create-kube-directory:
+              command: mkdir -p /home/ssm-user/.kube
+              ignoreErrors: false
+        install-aws-cli-v2:
+          commands:
+            a-remove-aws-cli-v1:
+              command: rm -rf /usr/bin/aws
+              ignoreErrors: false
+            b-download-aws-cli-v2:
+              command: curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+              ignoreErrors: false
+            c-unzip-package:
+              command: unzip awscliv2.zip
+              ignoreErrors: false
+            d-install-aws-cli-v2:
+              command: sudo ./aws/install -b
+              ignoreErrors: false
+        install-kubectl:
+          commands:
+            a-download-kubeconfig:
+              command: curl -LO -o kubectl https://s3.us-west-2.amazonaws.com/amazon-eks/1.29.3/2024-04-19/bin/linux/amd64/kubectl
+              ignoreErrors: false
+            b-make-executable:
+              command: chmod +x ./kubectl
+              ignoreErrors: false
+            c-set-path:
+              command: mkdir -p $HOME/bin && cp ./kubectl $HOME/bin/kubectl && export PATH=$PATH:$HOME/bin
+              ignoreErrors: false
+            d-export-path:
+              command: echo 'export PATH=$PATH:$HOME/bin' >> ~/.bashrc
+              ignoreErrors: false
+        install-eksctl:
+          commands:
+            a-download-eksctl:
+              # version has been hardcoded to v.0.139 -- released April 2023
+              command: curl --silent --location "https://github.com/weaveworks/eksctl/releases/download/v0.176.0/eksctl_Linux_amd64.tar.gz" | tar xz -C /tmp
+            b-move-to-bin:
+              command: mv /tmp/eksctl /usr/local/bin
+              ignoreErrors: false
+        install-other-tools:
+          commands:
+            a-install-tools:
+              command: yum -y install jq gettext bash-completion git tree golang util-linux
+              ignoreErrors: false
+        install-helm:
+          commands:
+            install-helm:
+              command: curl -L https://git.io/get_helm.sh | bash -s -- --version v3.8.2
+              ignoreErrors: false
+        install-docker:
+          commands:
+            a-install-docker:
+              command: yum install docker -y
+              ignoreErrors: false
+            b-start-docker-service:
+              command: service docker start
+              ignoreErrors: false
+        install-argocd-cli:
+          commands:
+            a-download-argocd:
+            # command: curl -sSL -o argocd-linux-amd64 https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+              command: curl -sSL -o argocd-linux-amd64 https://github.com/argoproj/argo-cd/releases/download/v2.9.3/argocd-linux-amd64
+              ignoreErrors: false
+            b-install-argocd:
+              command: sudo install -m 555 argocd-linux-amd64 /usr/local/bin/argocd
+              ignoreErrors: false
+            c-remove-argocd-file:
+              command: rm argocd-linux-amd64
+              ignoreErrors: false
+        # Start - Create ssm-user and assign as sudoer
+        create-ssm-user:
+          commands:
+            a-create-ssm-user:
+              command: if id -u "ssm-user" >/dev/null 2>&1; then echo 'ssm-user already exists'; else useradd ssm-user -m -U; fi
+              ignoreErrors: false
+            b-make-ssm-user-sudoer:
+              command: echo "ssm-user  ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/ssm-user
+              ignoreErrors: false
+            c-add-to-docker-group:
+              command: usermod -a -G docker ssm-user
+              ignoreErrors: false
+        # Start - Change ownership of ssm-user home directory and all sub-directories
+        change-ssm-user-directory-owner:
+          commands:
+            a-set-owner-ssm-user:
+              command: chown -R ssm-user /home/ssm-user
+              ignoreErrors: false
+        # Start - Create SSM doc and  
+        inc-session-timeout:
+          files:
+            /temp/ssm-settings.yaml:
+              content: |
+                ---
+                schemaVersion: '1.0'
+                description: Document to hold regional settings for Session Manager
+                sessionType: Standard_Stream
+                inputs:
+                  s3BucketName: ''
+                  s3KeyPrefix: ''
+                  s3EncryptionEnabled: true
+                  cloudWatchLogGroupName: ''
+                  cloudWatchEncryptionEnabled: true
+                  cloudWatchStreamingEnabled: true
+                  kmsKeyId: ''
+                  runAsEnabled: false
+                  runAsDefaultUser: 'ssm-user'
+                  idleSessionTimeout: '60'
+                  shellProfile:
+                    windows: ''
+                    linux: echo "Starting EC2 instance and running startup script..."; cd $HOME; source /usr/local/bin/variables.sh; clear; echo -e "\e[1;32mStartup scripts completed successfully. Enjoy the lab! \e[1;m"
+          commands:
+            a-delete-ssm-document:
+              command: aws ssm delete-document --name "SSM-SessionManagerRunShell"
+              ignoreErrors: true
+            b-create-ssm-document:
+              command: aws ssm create-document --name "SSM-SessionManagerRunShell" --content "file:///temp/ssm-settings.yaml" --document-format YAML --document-type Session
+              ignoreErrors: true
+        # Start - CreateVariablesScript
+        create-variables-script:
+          files:
+            /usr/local/bin/variables.sh:
+              content: |
+                #!/bin/bash
+                #The SSM document calls this script when each new session is started to recreate environment variables
+              mode: "000777"
+              owner: "ssm-user"
+          commands:
+            a-set-account-id:
+              command: !Sub echo "export ACCOUNT_ID=${AWS::AccountId}" >> /usr/local/bin/variables.sh
+              ignoreErrors: false
+            b-set-region:
+              command: !Sub echo "export AWS_REGION=${AWS::Region}" >> /usr/local/bin/variables.sh
+              ignoreErrors: false
+            c-update-path:
+              command: echo "export PATH=\"/usr/local/bin:$PATH\"" >> /usr/local/bin/variables.sh
+        # Start - CreateKeys - Create SSH key for GitUser and then export the SSH KEYID to Paramater Store
+        create-ssh-keys-for-codecommit:
+          files:
+            /home/ssm-user/.ssh/configTemp:
+              content: |
+                Host git-codecommit.*.amazonaws.com
+                  User $SSHKEYID
+                  IdentityFile ~/.ssh/id_rsa
+              mode: "000777"
+              owner: "ssm-user"
+          commands:
+            a-make-dir-for-keys:
+              command: mkdir -p /home/ssm-user/.ssh/
+              ignoreErrors: false
+            b-run-keygen:
+              command: ssh-keygen -b 2048 -t rsa -f /home/ssm-user/.ssh/id_rsa -q -N ""
+              ignoreErrors: false
+            c-change-rsa-owner:
+              command: chmod 700 /home/ssm-user/.ssh/id_rsa* && chown -R ssm-user:ssm-user /home/ssm-user/.ssh/
+              ignoreErrors: false
+            d-upload-key:
+              command: aws iam upload-ssh-public-key --user-name gitUser --ssh-public-key-body file:///home/ssm-user/.ssh/id_rsa.pub
+              ignoreErrors: false
+            e-save-sshkeyid-to-param-store:
+              command: SSHKEYID=$(aws iam list-ssh-public-keys --user-name gitUser | jq -r '.[] | .[] | .SSHPublicKeyId') && aws ssm put-parameter --name "SSHKEYID" --type "String" --value "$SSHKEYID" --overwrite
+              ignoreErrors: false
+            f-envsubst-SSHKEYID-into-ssh-config-file:
+              command: export SSHKEYID=$(aws iam list-ssh-public-keys --user-name gitUser | jq -r '.[] | .[] | .SSHPublicKeyId') && envsubst < /home/ssm-user/.ssh/configTemp > /home/ssm-user/.ssh/config
+              ignoreErrors: false
+            g-change-config-owner:
+              command: chmod 600 /home/ssm-user/.ssh/config && chown ssm-user:ssm-user /home/ssm-user/.ssh/config
+              ignoreErrors: false
+            h-save-privatekey-to-param-store:
+              command: aws ssm put-parameter --type String --name "gitUserPrivateKey" --value file:///home/ssm-user/.ssh/id_rsa --overwrite
+              ignoreErrors: false
+            i-cleanup:
+              command: rm -f /home/ssm-user/.ssh/configTemp
+              ignoreErrors: false
+        # Start - create access keys for ecrUser
+        create-access-keys:
+          files:
+            /lab/scripts/accesskeyscript.sh:
+              content: !Sub |
+                #!/bin/bash
+                str=$(aws ssm get-parameter --name EcrUserSecretAccessKey | jq -r .Parameter.Value)
+                echo "The current SecretAccessKey is" $str;
+                while [[ $str = *[-@#$%'&'*=+\/\\]* ]];
+                do
+                  echo "SecretAccessKey contains special character. Generating new key."
+                  aws iam delete-access-key --access-key-id $(aws iam list-access-keys --user-name ecrUser | jq -r '.AccessKeyMetadata[] | .AccessKeyId') --user-name ecrUser
+                  ECRUSERSECRETACCESSKEY=$(aws iam create-access-key --user-name ecrUser | jq -r '.[].SecretAccessKey')
+                  ECRUSERACCESSKEY=$(aws iam list-access-keys --user-name ecrUser | jq -r '.AccessKeyMetadata[] | .AccessKeyId')
+                  aws ssm put-parameter --name "EcrUserAccessKey" --type "String" --value "$ECRUSERACCESSKEY" --overwrite
+                  aws ssm put-parameter --name "EcrUserSecretAccessKey" --type "String" --value "$ECRUSERSECRETACCESSKEY" --overwrite
+                  str=$(aws ssm get-parameter --name EcrUserSecretAccessKey | jq -r .Parameter.Value)
+                  done
+                echo "The SecretAccessKey does not contain special characters."
+              mode: "000777"
+          commands:
+            #NOTE: We use a script to validate that the SecretAccesKey doesn't contain special characters, otherwise the installspinnaker.sh script will fail later in the CloudFormation template. This script will keep creating new keys until one is created without special characters.
+            a-make-keys-and-save-secret-to-param-store:
+              command: ECRUSERSECRETACCESSKEY=$(aws iam create-access-key --user-name ecrUser | jq -r '.[].SecretAccessKey') && aws ssm put-parameter --name "EcrUserSecretAccessKey" --type "String" --value "$ECRUSERSECRETACCESSKEY" --overwrite
+              ignoreErrors: false
+            b-check-check-secretkey-for-special-characters:
+              command: /lab/scripts/./accesskeyscript.sh
+              ignoreErrors: false
+            c-save-access-key-to-param-store:
+              command: ECRUSERACCESSKEY=$(aws iam list-access-keys --user-name ecrUser | jq -r '.AccessKeyMetadata[] | .AccessKeyId') && aws ssm put-parameter --name "EcrUserAccessKey" --type "String" --value "$ECRUSERACCESSKEY" --overwrite
+              ignoreErrors: false
+        # Start - EksctlCreateCluster config set commands
+        create-cluster-config:
+          files:
+            /home/ssm-user/scripts/cluster.yaml:
+              content: !Sub |
+                apiVersion: eksctl.io/v1alpha5
+                kind: ClusterConfig
+                metadata:
+                  name: eks-cluster
+                  region: ${AWS::Region}
+                  version: "${KubernetesVersion}"
+                vpc:
+                  id: ${LabVpc}
+                  securityGroup: "${ControlPlaneSecurityGroup}"
+                  subnets:
+                    public:
+                      ${AWS::Region}a: { id: ${EksPublicSubnet1} }
+                      ${AWS::Region}b: { id: ${EksPublicSubnet2} }
+                      ${AWS::Region}c: { id: ${EksPublicSubnet3} }
+                  clusterEndpoints:
+                    publicAccess: true
+                    privateAccess: true
+                iam:
+                  serviceRoleARN: "${EksClusterRole.Arn}"
+                managedNodeGroups:
+                  - name: eks-nodes
+                    minSize: 2
+                    maxSize: 4
+                    desiredCapacity: 3
+                    volumeSize: 30
+                    instanceType: t3.medium
+                    iam:
+                      instanceRoleARN: ${EksNodeInstanceRole.Arn}
+                    # defaults to true, which enforces the use of IMDSv2 tokens and breaks Spinnaker
+                    disableIMDSv1: false  
+                    
+        create-eks-cluster:
+          commands:
+            a-eksctl-create-dev-cluster:
+              command: eksctl create cluster -f /home/ssm-user/scripts/cluster.yaml --kubeconfig /home/ssm-user/.kube/config
+              ignoreErrors: false
+            b-upgrade-kubeconfig:
+              command: aws eks update-kubeconfig --name eks-cluster
+              ignoreErrors: false
+        # Start - download application files and Jenkinsfile
+        copy-app-from-s3:
+          commands:
+            a-make-lab-dir:
+              command: mkdir -p /lab && chmod 777 /lab
+              ignoreErrors: false
+            # Added from COREKS-1 lab2  
+            b-download-image-file:
+              command: aws s3 cp s3://aws-tc-largeobjects/ILT-TF-200-COREKS-10-EN/lab-3/eks-ilt-lab3.tar /lab/
+              ignoreErrors: false
+            c-make-appcode-dir:
+              command: mkdir /home/ssm-user/appcode
+              ignoreErrors: false
+            d-copy-app:
+              command: aws s3 cp s3://aws-tc-largeobjects/ILT-TF-200-CODEKS-10/eks-app-mesh-polyglot-demo.zip /lab/eks-app-mesh-polyglot-demo.zip
+              ignoreErrors: false
+            e-unzip:
+              command: unzip /lab/eks-app-mesh-polyglot-demo.zip -d /lab/eks-app-mesh-polyglot-demo
+              ignoreErrors: false
+        # Added from COREKS-1 lab2        
+        docker-load-image:
+          commands:
+            docker-load-image:
+              command: docker load -i /lab/eks-ilt-lab3.tar
+        # Added from COREKS-1 lab2      
+        #push-to-ecr:
+        #  commands:
+        #    a-authenticate-to-ecr:
+        #      command: !Sub aws ecr get-login-password --region ${AWS::Region} | docker login --username AWS --password-stdin ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com
+        #      ignoreErrors: false
+        #    b-tag-image:
+        #      command: !Sub docker tag nginx:1.25.3-alpine ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/awstc:eks-ilt-lab3
+        #      ignoreErrors: false
+        #    c-push-image:
+        #      command: !Sub docker push ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/awstc:eks-ilt-lab3
+        #      ignoreErrors: false
+        create-sample-files:
+          files:
+            /home/ssm-user/appcode/Dockerfile:
+              content: !Sub |
+                #1.0
+                FROM nginx:1.25.3-alpine
+                RUN rm /etc/nginx/conf.d/*
+                ADD src/hello.conf /etc/nginx/conf.d/
+                ADD src/index.html /usr/share/nginx/html/
+            /home/ssm-user/appcode/Dockerfile-Final:
+              content: !Sub |
+                #2.0
+                FROM nginx:1.25.3-alpine
+                RUN rm /etc/nginx/conf.d/*
+                ADD src/hello.conf /etc/nginx/conf.d/
+                ADD src/index.html /usr/share/nginx/html/    
+            /home/ssm-user/appcode/src/hello.conf:
+            #  source: https://aws-tc-largeobjects.s3-us-west-2.amazonaws.com/ILT-TF-200-COREKS-10-EN/lab-3/hello.conf
+              source: !Sub https://us-west-2-tcprod.s3-us-west-2.amazonaws.com/${S3PathPrefix}/scripts/src/hello.conf
+            /home/ssm-user/appcode/src/index.html:
+            #  source: https://aws-tc-largeobjects.s3-us-west-2.amazonaws.com/ILT-TF-200-COREKS-10-EN/lab-3/index.html
+              source: !Sub https://us-west-2-tcprod.s3-us-west-2.amazonaws.com/${S3PathPrefix}/scripts/src/index.html
+            /home/ssm-user/appcode/src/v2_index.html:
+              source: !Sub https://us-west-2-tcprod.s3-us-west-2.amazonaws.com/${S3PathPrefix}/scripts/src/v2_index.html
+
+        copy-jenkinsfile-from-s3:
+          commands:
+            a-copy-first-file-from-s3:
+            #  command: aws s3 cp s3://aws-tc-largeobjects/ILT-TF-200-CODEKS-10/Jenkinsfile /home/ssm-user/appcode/Jenkinsfile
+              command: !Sub aws s3 cp s3://us-west-2-tcprod/${S3PathPrefix}/scripts/Jenkinsfile /home/ssm-user/appcode/Jenkinsfile
+              ignoreErrors: false
+            b-replace-account-id:
+              command: !Sub sed -i "s/ACCOUNT_ID/${AWS::AccountId}/g" /home/ssm-user/appcode/Jenkinsfile
+              ignoreErrors: false
+            c-replace-aws-region:
+              command: !Sub sed -i "s/AWS_REGION/${AWS::Region}/g" /home/ssm-user/appcode/Jenkinsfile
+              ignoreErrors: false
+            d-copy-fourth-file-from-s3:
+              command: !Sub aws s3 cp s3://us-west-2-tcprod/${S3PathPrefix}/scripts/Jenkinsfile-Final /home/ssm-user/appcode/Jenkinsfile-Final
+              ignoreErrors: false
+
+        change-owner:
+          commands:
+            a-change-appcode-owner-to-ssm-user:
+              command: chown -R ssm-user:ssm-user /home/ssm-user/appcode/
+              ignoreErrors: false
+            b-change-lab-owner-to-ssm-user:
+              command: chown -R ssm-user:ssm-user /lab
+              ignoreErrors: false
+        # Start - Configure S3 bucket as Helm Repo
+        #create-helm-repo:
+        #  commands:
+        #    a-install-plugin:
+        #      command: !Sub runuser -l ssm-user -c 'AWS_REGION=${AWS::Region} helm plugin install https://github.com/hypnoglow/helm-s3.git'
+        #      ignoreErrors: false
+        #    b-init-repo:
+        #      command: !Sub runuser -l ssm-user -c 'AWS_REGION=${AWS::Region} helm s3 init s3://my-helm-chart-${AWS::AccountId}'
+        #      ignoreErrors: false
+        #    c-add-alias:
+        #      command: !Sub runuser -l ssm-user -c 'AWS_REGION=${AWS::Region} helm repo add productcatalog s3://my-helm-chart-${AWS::AccountId}'
+        #      ignoreErrors: false
+        # Start - Create Helm Repo and Deploy Chart to workshop Namespace
+        upload-chart-to-s3:
+          commands:
+            # a-copy-detail-microservice-to-appcode-folder:
+            #  command: cp -R /lab/eks-app-mesh-polyglot-demo/eks-app-mesh-polyglot-demo/detail_microservice/* /home/ssm-user/appcode && chown -R ssm-user:ssm-user /home/ssm-user/appcode
+            #  ignoreErrors: false
+            #b-helm-package:
+            #  command: !Sub runuser -l ssm-user -c 'cd /lab/eks-app-mesh-polyglot-demo/eks-app-mesh-polyglot-demo/workshop && sudo AWS_REGION=${AWS::Region} /usr/local/bin/helm package helm-chart/'
+            #  ignoreErrors: false
+            #c-save-to-s3: 
+            #  command: !Sub runuser -l ssm-user -c 'AWS_REGION=${AWS::Region} helm s3 push /lab/eks-app-mesh-polyglot-demo/eks-app-mesh-polyglot-demo/workshop/productcatalog_workshop-1.0.0.tgz productcatalog'
+            #  ignoreErrors: false
+            d-chown-kubeconfig:
+              command: chown ssm-user:ssm-user /home/ssm-user/.kube/config
+              ignoreErrors: false
+            #e-deploy-chart: 
+            #  command: !Sub runuser -l ssm-user -c 'AWS_REGION=${AWS::Region} helm install productcatalog s3://my-helm-chart-${AWS::AccountId}/productcatalog_workshop-1.0.0.tgz --version 1.0.0'
+            #  ignoreErrors: false
+            #f-set-LB-variable: 
+            #  command: runuser -l ssm-user -c 'sleep 1m && export LB_NAME=$(kubectl get svc --namespace workshop frontend -o jsonpath="{.status.loadBalancer.ingress[*].hostname}") && export DEV_FRONTEND=$(echo http://$LB_NAME) && aws ssm put-parameter --name "ApplicationURL" --type "String" --value "$DEV_FRONTEND" --overwrite'
+            #  ignoreErrors: false
+            # g-save-helm-archive-to-s3:
+            #  command: !Sub runuser -l ssm-user -c 'aws s3 cp s3://aws-tc-largeobjects/ILT-TF-200-CODEKS-10/productcatalog_workshop-1.0.0.tgz s3://my-spinnaker-bucket-${AWS::AccountId}/productcatalog_workshop-1.0.0.tgz'
+            #  ignoreErrors: false
+            # h-save-helm-values-to-s3:
+            #  command: !Sub runuser -l ssm-user -c 'aws s3 cp s3://aws-tc-largeobjects/ILT-TF-200-CODEKS-10/values.yaml s3://my-spinnaker-bucket-${AWS::AccountId}/values.yaml'
+            #  ignoreErrors: false
+        remove-lab-build-policy:
+          commands:
+            remove-lab-build-policy:
+              command: !Sub /usr/local/bin/aws iam delete-role-policy --role-name ${BastionHostIamRole} --policy-name BastionHostBuildPolicy
+    Properties:
+      ImageId: !Ref LatestAL2AmiId
+      InstanceType: t3.micro
+      IamInstanceProfile: !Ref BastionHostInstanceProfile
+      Tags:
+      - Key: Name
+        Value: Bastion Host
+      InstanceInitiatedShutdownBehavior: terminate
+      BlockDeviceMappings:
+      - DeviceName: /dev/xvda
+        Ebs:
+          VolumeSize: 40
+          DeleteOnTermination: true
+          VolumeType: gp2
+          Encrypted: true
+      NetworkInterfaces:
+      - AssociatePublicIpAddress: true
+        DeviceIndex: "0"
+        GroupSet:
+        - !Ref BastionHostSecurityGroup
+        SubnetId: !Ref BastionHostSubnet
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          yum update -y aws-cfn-bootstrap
+          /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource BastionHost --configsets InstallTools,CreateSsmUser,ChangeDirectoryOwner,IncreaseSessionMgrTimeout,CreateVariablesScript,CreateKeys,EksctlCreateCluster,AppAndJenkins,InitializeS3Bucket,ModifyInstancePermissions --region ${AWS::Region}
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource BastionHost --region ${AWS::Region}
+    CreationPolicy:
+      ResourceSignal:
+        Count: '1'
+        Timeout: PT45M
+  # End - Create bastion host
+
+  # Start - Create Jenkins EC2 Host
+  JenkinsHost:
+    Type: AWS::EC2::Instance
+    DependsOn:
+    - JenkinsPassword
+    - JenkinsURL
+    - JenkinsSubnetRouteTableAssociation
+    Metadata:
+      AWS::CloudFormation::Init:
+        configSets:
+          YumUpdate:
+          - "yum-update"
+          CreateSsmUser:
+          - "create-ssm-user"
+          CreateToolsDirectory:
+          - "create-directories"
+          ChangeDirectoryOwner:
+          - "change-ssm-user-directory-owner"
+          CreateLabDirecotry:
+          - "create-lab-directory"
+          - "change-lab-directory-owner"
+          InstallPython:
+          - "install-python3"
+          - "install-pip3"
+          - "install-virtualenv"
+          InstallAwsCli:
+          - "install-aws-cli-v2"
+          InstallDockerAndOtherTools:
+          - "install-other-tools"
+          - "install-docker"
+          SessionManager:
+          - "inc-session-timeout"
+          CreateVariablesScript:
+          - "create-variables-script"
+          BuildContainer:
+          - "jenkins-docker"
+          - "docker-build-container"
+          RemoveBuildPolicy:
+          - "remove-lab-build-policy"
+        # Start - YumUpdate
+        yum-update:
+          commands:
+            a-yum-update:
+              command: yum update -y
+              ignoreErrors: false
+        #Start - CreateSsmUser
+        create-ssm-user:
+          commands:
+            a-create-ssm-user:
+              command: if id -u "ssm-user" >/dev/null 2>&1; then echo 'ssm-user already exists'; else useradd ssm-user -m -U; fi
+              ignoreErrors: false
+            b-make-ssm-user-sudoer:
+              command: echo "ssm-user  ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/ssm-user
+        # Start - CreateToolsDirectory
+        create-directories:
+          commands:
+            a-tools:
+              command: mkdir -p /home/ssm-user/tools/
+              ignoreErrors: false
+            b-scripts:
+              command: mkdir -p /home/ssm-user/scripts/
+              ignoreErrors: false
+            c-jenkins-volume:
+              command: mkdir /var/jenkins_home
+              ignoreErrors: false
+            d-create-ssh-dir:
+              command: mkdir /var/jenkins_home/.ssh
+            e-change-dir-perms:
+              command: chmod -R 777 /var/jenkins_home
+              ignoreErrors: false
+        # Start - ChangeDirectoryOwner
+        change-ssm-user-directory-owner:
+          commands:
+            a-set-owner-ssm-user:
+              command: chown -R ssm-user /home/ssm-user
+              ignoreErrors: false
+        # Start - CreateLabDirecotry
+        create-lab-directory:
+          commands:
+            a-create-directory:
+              command: mkdir /lab
+              ignoreErrors: false
+        change-lab-directory-owner:
+          commands:
+            a-set-owner-ssm-user:
+              command: chown -R root /lab
+              ignoreErrors: false
+            b-lab-dir-access:
+              command: chmod 777 /lab
+              ignoreErrors: false
+        # Start - InstallPython
+        install-python3:
+          commands:
+            install-python3:
+              command: yum install -y python3
+              ignoreErrors: false
+        install-pip3:
+          commands:
+            install-pip3:
+              command: yum install -y python3-pip
+              ignoreErrors: false
+        install-virtualenv:
+          commands:
+            install-pip3:
+              command: pip3 install virtualenv
+              ignoreErrors: false
+        # Start - InstallAwsCli
+        install-aws-cli-v2:
+          commands:
+            a-remove-aws-cli-v1:
+              command: rm -rf /usr/bin/aws
+              ignoreErrors: false
+            b-download-aws-cli-v2:
+              command: curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+              ignoreErrors: false
+            c-unzip-package:
+              command: unzip awscliv2.zip
+              ignoreErrors: false
+            d-install-aws-cli-v2:
+              command: sudo ./aws/install -b
+              ignoreErrors: false
+        # Start - InstallDockerAndOtherTools        
+        install-other-tools:
+          commands:
+            a-install-tools:
+              command: yum install jq bash-completion git -y
+              ignoreErrors: false
+        install-docker:
+          commands:
+            a-install-docker:
+              command: yum install docker -y
+              ignoreErrors: false
+            b-add-ssm-user-to-docker-group:
+              command: usermod -a -G docker ssm-user
+              ignoreErrors: false
+            c-start-docker-service:
+              command: service docker start
+              ignoreErrors: false
+        # Start - SessionManager - increase default timeout and source bash profile
+        inc-session-timeout:
+          files:
+            /temp/ssm-settings.yaml:
+              content: |
+                ---
+                schemaVersion: '1.0'
+                description: Document to hold regional settings for Session Manager
+                sessionType: Standard_Stream
+                inputs:
+                  s3BucketName: ''
+                  s3KeyPrefix: ''
+                  s3EncryptionEnabled: true
+                  cloudWatchLogGroupName: ''
+                  cloudWatchEncryptionEnabled: true
+                  cloudWatchStreamingEnabled: true
+                  kmsKeyId: ''
+                  runAsEnabled: false
+                  runAsDefaultUser: 'ssm-user'
+                  idleSessionTimeout: '60'
+                  shellProfile:
+                    windows: ''
+                    linux: echo "Starting EC2 instance and running startup script..."; cd $HOME; source /usr/local/bin/variables.sh; clear; echo -e "\e[1;32mStartup scripts completed successfully. Enjoy the lab! \e[1;m"
+          commands:
+            a-delete-ssm-document:
+              command: aws ssm delete-document --name "SSM-SessionManagerRunShell"
+              ignoreErrors: true
+            b-create-ssm-document:
+              command: aws ssm create-document --name "SSM-SessionManagerRunShell" --content "file:///temp/ssm-settings.yaml" --document-format YAML --document-type Session
+              ignoreErrors: true
+        # Start - CreateVariablesScript
+        create-variables-script:
+          files:
+            /usr/local/bin/variables.sh:
+              content: |
+                #!/bin/bash
+                #The SSM document calls this script when each new session is started to recreate environment variables
+              mode: "000700"
+              owner: "ssm-user"
+          commands:
+            a-get-jenkins-password:
+              command: export JENKINS_PASS=$(aws secretsmanager get-secret-value --secret-id JenkinsPassword --query SecretString --output text | jq --raw-output .password) && echo "export JENKINS_PASS=$JENKINS_PASS" >> /usr/local/bin/variables.sh
+              ignoreErrors: false
+            b-update-path:
+              command: echo "export PATH=\"/usr/local/bin:$PATH\"" >> /usr/local/bin/variables.sh
+              ignoreErrors: false
+        # Start - Process Docker image - Download base image from S3 and then use Dockerfile to build new image
+        jenkins-docker:
+          files:
+            /home/ssm-user/tools/Dockerfile:
+            #  source: https://aws-tc-largeobjects.s3.us-west-2.amazonaws.com/ILT-TF-200-CODEKS-10/Dockerfile_New1
+              source: !Sub https://us-west-2-tcprod.s3-us-west-2.amazonaws.com/${S3PathPrefix}/scripts/jenkins/Dockerfile_New
+              mode: "000777"
+            /home/ssm-user/tools/default-user.groovy:
+            #  source: https://aws-tc-largeobjects.s3.us-west-2.amazonaws.com/ILT-TF-200-CODEKS-10/default-user.groovy
+              source: !Sub https://us-west-2-tcprod.s3-us-west-2.amazonaws.com/${S3PathPrefix}/scripts/jenkins/default-user.groovy
+              mode: "000777"
+            /home/ssm-user/tools/executors.groovy:
+            #  source: https://aws-tc-largeobjects.s3.us-west-2.amazonaws.com/ILT-TF-200-CODEKS-10/executors.groovy
+              source: !Sub https://us-west-2-tcprod.s3-us-west-2.amazonaws.com/${S3PathPrefix}/scripts/jenkins/executors.groovy
+              mode: "000777"
+            /home/ssm-user/tools/disable-warnings.groovy:
+            #  source: https://aws-tc-largeobjects.s3.us-west-2.amazonaws.com/ILT-TF-200-CODEKS-10/disable-warnings.groovy
+              source: !Sub https://us-west-2-tcprod.s3-us-west-2.amazonaws.com/${S3PathPrefix}/scripts/jenkins/disable-warnings.groovy
+              mode: "000777"
+            /home/ssm-user/tools/set-jenkins-url.groovy:
+            #  source: https://aws-tc-largeobjects.s3.us-west-2.amazonaws.com/ILT-TF-200-CODEKS-10/set-jenkins-url.groovy
+              source: !Sub https://us-west-2-tcprod.s3-us-west-2.amazonaws.com/${S3PathPrefix}/scripts/jenkins/set-jenkins-url.groovy
+              mode: "000777"
+            /home/ssm-user/tools/config:
+            #  source: https://aws-tc-largeobjects.s3.us-west-2.amazonaws.com/ILT-TF-200-CODEKS-10/config
+              source: !Sub https://us-west-2-tcprod.s3-us-west-2.amazonaws.com/${S3PathPrefix}/scripts/jenkins/config
+              mode: "000644"
+            /var/jenkins_home/jenkins.security.UpdateSiteWarningsConfiguration.xml:
+            #  source: https://aws-tc-largeobjects.s3.us-west-2.amazonaws.com/ILT-TF-200-CODEKS-10/jenkins.security.UpdateSiteWarningsConfiguration.xml
+              source: !Sub https://us-west-2-tcprod.s3-us-west-2.amazonaws.com/${S3PathPrefix}/scripts/jenkins/jenkins.security.UpdateSiteWarningsConfiguration.xml
+              mode: "000777"
+            /var/jenkins_home/config.xml:
+            #  source: https://aws-tc-largeobjects.s3.us-west-2.amazonaws.com/ILT-TF-200-CODEKS-10/config_new.xml
+              source: !Sub https://us-west-2-tcprod.s3-us-west-2.amazonaws.com/${S3PathPrefix}/scripts/jenkins/config_new.xml
+              mode: "000777"
+            /var/jenkins_home/.ssh/known_hosts:
+              content: |
+                * * *
+          commands:
+            a-copy-base-image:
+              #command: docker pull jenkins/jenkins:lts
+              command: docker pull jenkins/jenkins:2.440
+              ignoreErrors: false
+        docker-build-container:
+          commands:
+            a-update-jenkins-url:
+              command: export JENKINS_IP=$(echo "http://"$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)) && sed --expression "s@replaceme@$JENKINS_IP@" /home/ssm-user/tools/set-jenkins-url.groovy
+              cwd: /home/ssm-user/tools/
+              ignoreErrors: false
+            b-docker-build:
+              command: export JENKINS_PASS=$(aws secretsmanager get-secret-value --secret-id JenkinsPassword --query SecretString --output text | jq --raw-output .password) && docker build . --tag jenkins-docker --build-arg buildtime_variable=$JENKINS_PASS
+              cwd: /home/ssm-user/tools/
+              ignoreErrors: false
+            c-get-image-id:
+              command: export IMAGEID=$(docker images -q jenkins-docker) && docker run --rm -d -v /var/jenkins_home:/var/jenkins_home -p 80:8080 -p 50000:50000 --privileged $IMAGEID
+              cwd: /home/ssm-user/tools/
+              ignoreErrors: false
+            d-save-url-to-param-store:
+              command: export JENKINS_IP=$(echo "http://"$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)) && aws ssm put-parameter --name "JenkinsURL" --type "String" --value "$JENKINS_IP" --overwrite
+        # Start - Remove buildpolicy
+        remove-lab-build-policy:
+          commands:
+            remove-lab-build-policy:
+              command: !Sub /usr/local/bin/aws iam delete-role-policy --role-name ${JenkinsIamRole} --policy-name JenkinsBuildPolicy
+              ignoreErrors: false
+    Properties:
+      ImageId: !Ref LatestAL2AmiId
+      InstanceType: t3.large
+      IamInstanceProfile: !Ref JenkinsInstanceProfile
+      Tags:
+      - Key: Name
+        Value: Jenkins Host
+      InstanceInitiatedShutdownBehavior: terminate
+      BlockDeviceMappings:
+      - DeviceName: /dev/xvda
+        Ebs:
+          VolumeSize: 30
+          DeleteOnTermination: true
+          VolumeType: gp2
+          Encrypted: true
+      NetworkInterfaces:
+      - AssociatePublicIpAddress: true
+        DeviceIndex: "0"
+        GroupSet:
+        - !Ref JenkinsSecurityGroup
+        SubnetId: !Ref JenkinsSubnet
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          yum update -y aws-cfn-bootstrap
+          /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource JenkinsHost --configsets YumUpdate,CreateSsmUser,ChangeDirectoryOwner,CreateToolsDirectory,CreateLabDirecotry,InstallAwsCli,InstallDockerAndOtherTools,SessionManager,CreateVariablesScript,BuildContainer,RemoveBuildPolicy --region ${AWS::Region}
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource JenkinsHost --region ${AWS::Region}
+    CreationPolicy:
+      ResourceSignal:
+        Count: '1'
+        Timeout: PT45M
+  # End - Create Jenkins host
+
+  ImageRepo:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Ref ImageRepoName
+
+  # Added from COREKS-1 lab2
+  #ImageRepoAWSTC:
+  #  Type: AWS::ECR::Repository
+  #  Properties:
+  #    RepositoryName: awstc
+  # Start - Create IAM User for use with Git credentials. This user is used by Jenkins to clone the CodeCommit Repo
+  gitUser:
+    Type: AWS::IAM::User
+    Properties:
+      Policies:
+      - PolicyName: codecommit-restricted
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+          - Resource:
+            - !Sub arn:aws:codecommit:${AWS::Region}:${AWS::AccountId}:AppCodeRepo
+            - !Sub arn:aws:codecommit:${AWS::Region}:${AWS::AccountId}:ManifestRepo
+            - !Sub arn:aws:codecommit:${AWS::Region}:${AWS::AccountId}:detailMicroserviceRepo
+            Effect: Allow
+            Action:
+            - codecommit:MergeBranchesBySquash
+            - codecommit:TagResource
+            - codecommit:PutFile
+            - codecommit:CreateCommit
+            - codecommit:GetCommentsForComparedCommit
+            - codecommit:MergeBranchesByFastForward
+            - codecommit:GetCommit
+            - codecommit:GetComment
+            - codecommit:GetCommitHistory
+            - codecommit:GetDifferences
+            - codecommit:GetCommitsFromMergeBase
+            - codecommit:GetBranch
+            - codecommit:GetMergeCommit
+            - codecommit:DeleteFile
+            - codecommit:GetPullRequest
+            - codecommit:List*
+            - codecommit:GitPull
+            - codecommit:GitPush
+            - ecr:GetAuthorizationToken
+      UserName: gitUser
+
+  # Start - Create IAM User to enable Jenkisn to build images and push to ECR
+  ecrUser:
+    Type: 'AWS::IAM::User'
+    Properties:
+      UserName: ecrUser
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPowerUser
+
+  # Start - Create a Random Password for the Jenkins user
+
+  JenkinsPassword:
+    Type: 'AWS::SecretsManager::Secret'
+    Properties:
+      Name: JenkinsPassword
+      Description: "A random password for the Jenkins admin user"
+      GenerateSecretString:
+        SecretStringTemplate: '{"username": "admin"}'
+        GenerateStringKey: "password"
+        ExcludePunctuation: 'true'
+        PasswordLength: 16
+      Tags:
+      - Key: Jenkins
+        Value: Password
+
+  ApplicationURL:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: ApplicationURL
+      Type: String
+      Value: ApplicationURL
+
+  JenkinsURL:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: JenkinsURL
+      Type: String
+      Value: JenkinsURL
+
+  SSHKEYID:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: SSHKEYID
+      Type: String
+      Value: SSHKEYID
+
+  GitUserPrivateKey:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: gitUserPrivateKey
+      Type: String
+      Value: GitUserPrivateKey
+
+  EcrUserSecretAccessKey:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: EcrUserSecretAccessKey
+      Type: String
+      Value: EcrUserSecretAccessKey
+
+  EcrUserAccessKey:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: EcrUserAccessKey
+      Type: String
+      Value: EcrUserAccessKey
+
+Outputs:
+  AWSRegion:
+    Description: The AWS Region that the lab is running in
+    Value: !Ref AWS::Region
+  AccountID:
+    Description: The AWS account that the lab is running in
+    Value: !Ref AWS::AccountId
+  JenkinsServer:
+    Description: The URL pointing to the Jenkins Server
+    Value: !Join ['', ['http://', !GetAtt JenkinsHost.PublicIp]]
+  ApplicationURL:
+    Description: The URL pointing to the Application frontend
+    Value: !GetAtt ApplicationURL.Value
+  GitUserSSHKeyID:
+    Description: The SSH Key ID for gitUser
+    Value: !GetAtt SSHKEYID.Value
+  EcrUserAccessKey:
+    Description: The AccessKey for ecrUser
+    Value: !GetAtt EcrUserAccessKey.Value
+  EcrUserSecretAccessKey:
+    Description: The SecretAccessKey for ecrUser
+    Value: !GetAtt EcrUserSecretAccessKey.Value
