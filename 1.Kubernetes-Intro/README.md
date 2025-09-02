@@ -1,7 +1,7 @@
 1. EKS cluster 생성하기 시작
 
 ```text
-eks에 fargate의 컨테이너를 배포하려면 어떻게 해야 해?
+eks 클러스터를 생성하려면 어떻게 해야 해?
 ```
 
 ```bash
@@ -14,7 +14,13 @@ sudo mv -v /tmp/eksctl /usr/local/bin
 
 ```bash
 # Managed Mode
-eksctl create cluster --name ekscluster --region us-west-2 
+eksctl create cluster \
+  --name ekscluster \
+  --region us-west-2 \
+  --nodegroup-name eks-nodegroup \
+  --node-type t3.small \
+  --nodes 2 \
+  --managed  
 
 # Fargate 
 eksctl create cluster --name ekscluster --region us-west-2 --fargate
