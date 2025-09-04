@@ -174,3 +174,9 @@ kubectl get svc demo-frontend
 kubectl delete  service demo-frontend
 kubectl delete deployment demo-frontend
 ```
+
+#####
+
+```bash
+eksctl delete cluster --name ekscluster
+```
