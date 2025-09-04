@@ -35,7 +35,7 @@ vpc:
 
 managedNodeGroups:
   - name: node-group          # 클러스터의 노드 그룹명
-    instanceType: m3.medium   # 클러스터 워커 노드의 인스턴스 타입
+    instanceType: t3.small   # 클러스터 워커 노드의 인스턴스 타입
     desiredCapacity: 3        # 클러스터 워커 노드의 갯수
     volumeSize: 20            # 클러스터 워커 노드의 EBS 용량 (단위: GiB)
     privateNetworking: true
