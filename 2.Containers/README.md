@@ -71,6 +71,9 @@ aws ecr에 컨테이너 이미지를 업로드하는 명령어를 알려줘.
 
 ```bash
 # 리포지터리 생성
+export AWS_REGION=us-west-2
+export ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+
 aws ecr create-repository --repository-name my-web-app --region $AWS_REGION
 aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ACCOUNT_ID.dkr.ecr.us-west-2.amazonaws.com
 ```
