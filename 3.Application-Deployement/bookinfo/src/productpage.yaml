@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: productpage
+  labels:
+    app: productpage
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: productpage
+  template:
+    metadata:
+      labels:
+        app: productpage
+    spec:
+      containers:
+        - name: productpage
+          # ECR에 푸시한 이미지로 교체하세요
+          image: <ACCOUNT_ID>.dkr.ecr.<AWS_REGION>.amazonaws.com/productpage:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 9080
+          env:
+            # 내부 서비스 DNS로 통신 (ClusterIP)
+            - name: DETAILS_HOSTNAME
+              value: "details"
+            - name: REVIEWS_HOSTNAME
+              value: "reviews"
+            - name: RATINGS_HOSTNAME
+              value: "ratings"
+            # 필요 시 버전/환경 값 추가
+            # - name: SERVICE_VERSION
+            #   value: "v1"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 9080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 2
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 9080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 2
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: productpage-lb
+  labels:
+    app: productpage
+spec:
+  type: LoadBalancer
+  selector:
+    app: productpage
+  ports:
+    - name: http
+      port: 80         # 외부에서 접속할 포트
+      targetPort: 9080 # 컨테이너 포트
