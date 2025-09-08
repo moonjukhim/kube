@@ -10,21 +10,21 @@ sudo mv -v /tmp/eksctl /usr/local/bin
 
 #### 1. Demo Application 배포
 
-- 1.1 ECR Push
+- 1.1 ECR Repository 생성
 
 ```bash
 export ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 #export AWS_REGION=$(aws configure get region)
 export AWS_REGION=us-west-2
 
-aws ecr create-repository --repository-name productpage --region $AWS_REGION -output text > /dev/null
-aws ecr create-repository --repository-name ratings --region $AWS_REGION
-aws ecr create-repository --repository-name reviews --region $AWS_REGION
+aws ecr create-repository --repository-name productpage --region $AWS_REGION --output text > /dev/null
+aws ecr create-repository --repository-name ratings --region $AWS_REGION --output text > /dev/null
+aws ecr create-repository --repository-name reviews --region $AWS_REGION --output text > /dev/null
 
 aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ACCOUNT_ID.dkr.ecr.us-west-2.amazonaws.com
 ```
 
-- 1.2 코드 복사
+- 1.2 컨테이너 이미지 빌드 및 푸시
 
 ```bash
 git clone https://github.com/moonjukhim/kube.git
@@ -34,8 +34,13 @@ docker build -t $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/productpage:latest
 docker build -t $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/ratings:latest ratings
 docker build -t $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/reviews:latest reviews
 
-docker push $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/productpage:latest:latest
-docker push $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/ratings:latest:latest
-docker push $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/productpage:latest:latest
+docker push $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/productpage:latest
+docker push $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/ratings:latest
+docker push $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/productpage:latest
+
 
 ```
+
+- 1.3 컨테이너 배포
+
+
