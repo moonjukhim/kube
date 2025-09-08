@@ -19,7 +19,7 @@ eksctl create cluster \
   --region us-west-2 \
   --nodegroup-name eks-nodegroup \
   --node-type t3.small \
-  --nodes 2 \
+  --nodes 3 \
   --managed  
 
 # Fargate 
