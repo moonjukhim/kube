@@ -6,6 +6,9 @@ sudo chmod +x /usr/local/bin/kubectl
 
 curl --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
 sudo mv -v /tmp/eksctl /usr/local/bin
+
+aws eks update-kubeconfig --region $AWS_REGION --name ekscluster
+kubectl config current-context
 ```
 
 #### 1. Demo Application 배포
@@ -30,12 +33,12 @@ aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --
 git clone https://github.com/moonjukhim/kube.git
 cd kube/3.Application-Deployement/bookinfo/src
 
-docker build -t $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/productpage:latest productpage
-docker build -t $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/ratings:latest ratings
+docker build -t $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/productpage:1.0.0 productpage
+docker build -t $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/ratings:1.0.0 ratings
 docker build -t $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/reviews:latest reviews
 
-docker push $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/productpage:latest
-docker push $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/ratings:latest
+docker push $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/productpage:1.0.0
+docker push $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/ratings:1.0.0
 docker push $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/productpage:latest
 
 
