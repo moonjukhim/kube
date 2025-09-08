@@ -8,10 +8,39 @@ curl --location "https://github.com/weaveworks/eksctl/releases/latest/download/e
 sudo mv -v /tmp/eksctl /usr/local/bin
 ```
 
-#### 1. Deployment, Service 배포
+#### 1. Demo Application 배포
+
+- 1.1 ECR Push
+
+```bash
+export ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+#export AWS_REGION=$(aws configure get region)
+export AWS_REGION=us-west-2
+
+aws ecr create-repository --repository-name productpage --region $AWS_REGION
+aws ecr create-repository --repository-name ratings --region $AWS_REGION
+aws ecr create-repository --repository-name reviews --region $AWS_REGION
+aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ACCOUNT_ID.dkr.ecr.us-west-2.amazonaws.com
+```
+
+- 1.2 코드 복사
+
+```bash
+git clone https://github.com/moonjukhim/kube.git
+cd /home/cloudshell-user/kube/3.Application-Deployement/bookinfo/src
+
+docker build -t $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/productpage:latest productpage
+docker build -t $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/ratings:latest ratings
+docker build -t $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/reviews:latest reviews
+
+docker push $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/productpage:latest:latest
+docker push $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/ratings:latest:latest
+docker push $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/productpage:latest:latest
+
+```
 
 Deployment, Service 배포
-  
+
 ```bash
 aws s3 cp s3://aws-tc-largeobjects/ILT-TF-200-COREKS-10-EN/lab-1/ecsdemo-crystal/ ~/ecsdemo-crystal/ --recursive
 aws s3 cp s3://aws-tc-largeobjects/ILT-TF-200-COREKS-10-EN/lab-1/ecsdemo-frontend/ ~/ecsdemo-frontend/ --recursive
@@ -71,7 +100,7 @@ kubectl delete service ecsdemo-frontend
 
 Deployment Manifest 파일
 
-```bash
+````bash
 - 1.2 deployment manifest (deployment.yaml)
   ```bash
   cat > deployment.yaml<<EOF
@@ -97,23 +126,23 @@ Deployment Manifest 파일
             ports:
               - containerPort: 80
   EOF
-  ```
+````
 
 Service Manifest 파일
 
-  ```bash
-  cat > service.yaml<<EOF
-  apiVersion: v1
-  kind: Service
-  metadata:
-    name: nginx
-  spec:
-    type: LoadBalancer
-    selector:
-      app: nginx
-    ports:
-      - protocol: TCP
-        port: 60000
-        targetPort: 80
-  EOF
-  ```
+```bash
+cat > service.yaml<<EOF
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx
+spec:
+  type: LoadBalancer
+  selector:
+    app: nginx
+  ports:
+    - protocol: TCP
+      port: 60000
+      targetPort: 80
+EOF
+```
