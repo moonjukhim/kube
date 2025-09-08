@@ -28,7 +28,7 @@ aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --
 
 ```bash
 git clone https://github.com/moonjukhim/kube.git
-cd /home/cloudshell-user/kube/3.Application-Deployement/bookinfo/src
+cd kube/3.Application-Deployement/bookinfo/src
 
 docker build -t $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/productpage:latest productpage
 docker build -t $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/ratings:latest ratings
