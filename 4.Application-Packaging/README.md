@@ -1,4 +1,4 @@
-#### 1. Help Repository Creation
+##### 1. Help Repository Creation
 
 ```bash
 # Helm Install
@@ -20,13 +20,13 @@ helm repo add packagecatalog s3://$S3_BUCKET_NAME
 helm repo list
 ```
 
-#### 2. Make Helm Chart
+##### 2. Make Helm Chart
 
 ```bash
 helm create helm-chart
 ```
 
-#### 3. Review Chart Structure
+##### 3. Review Chart Structure
 
 ```bash
 ls helm-chart
@@ -34,7 +34,7 @@ ls helm-chart
 sed -i "s/ClusterIP/LoadBalancer/g" helm-chart/values.yaml
 ```
 
-#### 4. Helm Chart Packaging
+##### 4. Helm Chart Packaging
 
 ```bash
 helm package helm-chart/
@@ -43,7 +43,7 @@ helm search repo
 ```
 
 
-#### 5. Install Helm Chart to EKS Cluster
+##### 5. Install Helm Chart to EKS Cluster
 
 ```bash
 helm install packagecatalog s3://$S3_BUCKET_NAME/helm-chart-0.1.0.tgz --version 0.1.0 --dry-run --debug
@@ -51,7 +51,7 @@ helm install packagecatalog s3://$S3_BUCKET_NAME/helm-chart-0.1.0.tgz --version 
 ```
 
 
-#### 6. Helm Chart Re-packaging and Re-deployment
+##### 6. Helm Chart Re-packaging and Re-deployment
 
 
 ```bash
@@ -60,14 +60,14 @@ sed -i "s/replicaCount:.*/replicaCount: 3/g" helm-chart/values.yaml
 helm upgrade packagecatalog helm-chart/
 ```
 
-#### 7. 객체 확인
+##### 7. 객체 확인
 
 ```bash
 kubectl get deployment
 kubectl get service
 ```
 
-#### 7. Resource clean-up
+##### 8. Resource clean-up
 
 ```bash
 helm delete packagecatalog
