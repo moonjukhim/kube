@@ -9,8 +9,8 @@ helm version --short
 helm plugin install https://github.com/hypnoglow/helm-s3.git
 
 
-# 
 # export ACCOUNT_ID=[MY_ACCOUNT_ID]
+export ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 export S3_BUCKET_NAME=helm-${ACCOUNT_ID}
 aws s3 mb s3://${S3_BUCKET_NAME}
 helm s3 init s3://${S3_BUCKET_NAME}
@@ -31,9 +31,7 @@ helm create helm-chart
 ```bash
 ls helm-chart
 
-# change service's type
-# from ClusterIP to LoadBalancer
-# vi helm-chart/values.yaml
+sed -i "s/ClusterIP/LoadBalancer/g" helm-chart/values.yaml
 ```
 
 #### 4. Helm Chart Packaging
@@ -52,7 +50,24 @@ helm install packagecatalog s3://$S3_BUCKET_NAME/helm-chart-0.1.0.tgz --version 
 helm install packagecatalog s3://$S3_BUCKET_NAME/helm-chart-0.1.0.tgz --version 0.1.0
 ```
 
-#### Resource clean-up
+
+#### 6. Helm Chart Re-packaging and Re-deployment
+
+
+```bash
+sed -i "s/replicaCount:.*/replicaCount: 3/g" helm-chart/values.yaml
+
+helm upgrade packagecatalog helm-chart/
+```
+
+#### 7. 객체 확인
+
+```bash
+kubectl get deployment
+kubectl get service
+```
+
+#### 7. Resource clean-up
 
 ```bash
 helm delete packagecatalog
