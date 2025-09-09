@@ -73,4 +73,5 @@ kubectl get service
 helm delete packagecatalog
 helm repo remove packagecatalog
 aws s3 rm s3://${S3_BUCKET_NAME} --recursive
+
 ```
