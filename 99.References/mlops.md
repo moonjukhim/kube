@@ -1,3 +1,21 @@
+## 1 핵심 영역
+
+| 구분 | 세부 항목 | 도구 / 기술 |
+|------|-----------|-------------|
+| 소스 코드 관리 (SCM) | 버전 관리, 협업 | Git, GitHub, GitLab, Bitbucket |
+| CI/CD (지속적 통합/배포) | 빌드 자동화, 테스트, 배포 파이프라인 | Jenkins, GitHub Actions, GitLab CI, CircleCI, Argo CD, Tekton |
+| 컨테이너 & 오케스트레이션 | 애플리케이션 컨테이너화 및 배포 | Docker, Podman, Kubernetes, OpenShift |
+| 구성 관리 <br>(Configuration Management) | 서버/환경 자동화 관리 | Ansible, Chef, Puppet, SaltStack |
+| 인프라 자동화 (IaC) | 코드 기반 인프라 관리 | Terraform, AWS CloudFormation, Pulumi |
+| 모니터링 & 로깅 | 시스템/애플리케이션 성능 추적 | Prometheus, Grafana, ELK Stack (Elasticsearch, Logstash, Kibana), Loki |
+| 협업 & 커뮤니케이션 | 협업 툴, 애자일/칸반 보드 | Jira, Confluence, Slack, Microsoft Teams |
+| 보안 (DevSecOps) | 코드/빌드/배포 단계 보안 통합 | SonarQube, Snyk, Trivy, HashiCorp Vault |
+
+
+---
+
+MLOps = DevOps + ML
+
 ## 1 기초 지식 준비
 
 | 구분                     | 학습 항목 | 세부 내용                          |
