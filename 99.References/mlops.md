@@ -46,3 +46,19 @@ MLOps = DevOps + ML
 - 실습 플랫폼:
     - Kaggle + MLflow
     - AWS SageMaker Studio Lab (무료)
+
+
+---
+
+### DevOps Vs. MLOps
+
+| 구분 | DevOps | MLOps |
+|------|--------|-------|
+| 소스/데이터 관리 | Git, GitHub, GitLab, Bitbucket (코드 버전 관리) | DVC, LakeFS, Delta Lake (데이터 버전 관리), Feature Store (Feast, SageMaker Feature Store) |
+| CI/CD (지속적 통합/배포) | Jenkins, GitHub Actions, GitLab CI, CircleCI, Argo CD, Tekton | MLflow Pipelines, Kubeflow Pipelines, GitHub Actions, GitLab CI (모델 학습 + 배포 자동화) |
+| 컨테이너 & 오케스트레이션 | Docker, Podman, Kubernetes, OpenShift | Docker, Kubernetes, Kubeflow, Seldon Core, BentoML (모델 배포/서빙) |
+| 구성/인프라 관리 | Ansible, Chef, Puppet, SaltStack, Terraform, CloudFormation | IaC 도구 동일하게 활용 (Terraform, CloudFormation) + 모델 학습 환경 자동화 |
+| 실험/학습 관리 | (일반 SW는 필요 없음) | MLflow, Weights & Biases, Neptune.ai (실험 추적 및 메트릭 로깅) |
+| 모니터링 & 로깅 | Prometheus, Grafana, ELK Stack, Loki (시스템/애플리케이션 모니터링) | Prometheus, Grafana, Evidently AI (데이터/모델 드리프트, 성능 모니터링) |
+| 협업 & 커뮤니케이션 | Jira, Confluence, Slack, Teams | 동일하게 사용 + 추가로 모델 실험 공유 도구(W&B Reports 등) |
+| 보안 (DevSecOps / MLOps 보안) | SonarQube, Snyk, Trivy, Vault (코드 및 빌드 보안) | 모델 보안/데이터 프라이버시 검증, 모델 접근 제어 (IAM, Unity Catalog 등) |
