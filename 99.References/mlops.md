@@ -1,4 +1,4 @@
-## 1 핵심 영역
+## 1 DevOps 핵심 영역
 
 | 구분 | 세부 항목 | 도구 / 기술 |
 |------|-----------|-------------|
@@ -11,6 +11,25 @@
 | 협업 & 커뮤니케이션 | 협업 툴, 애자일/칸반 보드 | Jira, Confluence, Slack, Microsoft Teams |
 | 보안 (DevSecOps) | 코드/빌드/배포 단계 보안 통합 | SonarQube, Snyk, Trivy, HashiCorp Vault |
 
+## 책
+
+| 단계    | 책 제목                                               | 특징                                               |
+| ----- | -------------------------------------------------- | ------------------------------------------------ |
+| 입문    | **The DevOps Handbook** (Gene Kim 외)               | DevOps 철학과 원칙을 정리한 고전, “왜 DevOps인가?” 이해에 적합      |
+| 입문/실무 | **Accelerate** (Nicole Forsgren 외)                 | DORA Metrics(배포 빈도, 변경 실패율 등)로 DevOps 성과를 계량화한 책 |
+| 실무    | **Site Reliability Engineering (SRE)** (Google)    | 대규모 시스템 운영 경험 기반, DevOps/SRE 차이와 실무 노하우          |
+| 실무    | **Continuous Delivery** (Jez Humble, David Farley) | CI/CD 파이프라인 설계와 자동화 원리 정리                        |
+| 실무/심화 | **Infrastructure as Code** (Kief Morris)           | Terraform, CloudFormation 등 IaC 개념과 패턴 학습        |
+
+
+## 강의
+
+| 플랫폼         | 강의 제목                                                             | 특징                                                |
+| ----------- | ----------------------------------------------------------------- | ------------------------------------------------- |
+| Coursera    | **Continuous Integration & Continuous Deployment** (Google Cloud) | CI/CD 파이프라인 중심, GCP 기반 실습                         |
+| Coursera    | **DevOps on AWS Specialization** (AWS)                            | AWS 기반 DevOps 실무 (CodePipeline, CodeBuild, ECS 등) |
+| Udemy       | **Docker & Kubernetes: The Complete Guide** (Stephen Grider)      | Docker/K8s 입문\~실무, 가장 평이 좋은 강의 중 하나               |
+| Udemy       | **CI/CD with Jenkins, Git, Docker, Kubernetes**                   | Jenkins 중심의 CI/CD 실습형 강의                          |
 
 ---
 
@@ -50,7 +69,7 @@ MLOps = DevOps + ML
 
 ---
 
-### DevOps Vs. MLOps
+## DevOps Vs. MLOps
 
 | 구분 | DevOps | MLOps |
 |------|--------|-------|
