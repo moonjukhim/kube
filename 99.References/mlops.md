@@ -8,3 +8,11 @@
 
 
 ## 2 MLOps 핵심 개념
+
+| 구분 | 세부 항목 | 도구 / 기술 |
+|------|-----------|-------------|
+| 데이터 관리<br> 데이터 엔지니어링 | - 데이터 버전 관리<br> - Feature Store | - DVC, LakeFS, Delta Lake<Br> - Feast, SageMaker Feature Store |
+| 모델 학습 & 실험 관리 | - 실험 관리 도구<br> - 실험 추적 및 로깅 | - MLflow, Weights & Biases(W&B), Neptune.ai<br> - Experiments, 메트릭 로깅 |
+| 모델 패키징 & 배포 | - 컨테이너화<br> - 배포/서빙 프레임워크<br> - CI/CD | - Docker<br> - Kubernetes + Kubeflow, Seldon Core, BentoML<br> - 모델 배포 파이프라인 |
+| 모델 모니터링 & 운영 | - 데이터 품질<br> - 성능 모니터링<br> - 운영 자동화 | - 데이터 드리프트 탐지<br> - Prometheus, Grafana, Evidently AI<br> - 재학습 트리거 |
+| 워크플로우 오케스트레이션 | 파이프라인 오케스트레이션 | Kubeflow Pipelines, Airflow, Prefect, Dagster |
