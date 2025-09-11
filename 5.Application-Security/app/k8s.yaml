@@ -1,0 +1,62 @@
+# Aurora 연결 정보 (비밀번호 없음: IAM 인증 사용)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: db-env
+type: Opaque
+stringData:
+  DB_HOST: "[AURORA_CLUSTER_HOSTNAME]"
+  DB_PORT: "3306"
+  DB_USER: "app_iam_user"
+  DB_NAME: "appdb"
+  # AWS_REGION 을 여기서 지정해도 되고, Deployment env 로 지정해도 됩니다.
+  AWS_REGION: "us-west-2"
+---
+# IRSA용 ServiceAccount (아래 role-arn 은 실제 값으로 교체)
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: rds-iam-sa
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::<ACCOUNT_ID>:role/RdsIamConnectRole
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aurora-client
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: aurora-client }
+  template:
+    metadata:
+      labels: { app: aurora-client }
+    spec:
+      serviceAccountName: rds-iam-sa
+      containers:
+        - name: app
+          image: <YOUR_ECR_OR_DOCKERHUB_REPO>:1.0.0
+          ports:
+            - containerPort: 3000
+          envFrom:
+            - secretRef: { name: db-env }
+          readinessProbe:
+            httpGet: { path: /health, port: 3000 }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /health, port: 3000 }
+            initialDelaySeconds: 20
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: aurora-client-svc
+spec:
+  selector: { app: aurora-client }
+  ports:
+    - name: http
+      port: 80
+      targetPort: 3000
+  type: LoadBalancer
