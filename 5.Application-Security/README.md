@@ -10,22 +10,25 @@ kubectl get nodes
 1. Security Group Creation
 
 ```bash
-export SG_ID=$(aws ec2 create-security-group --group-name aurora-db-sg --description "SG for Aurora DB" --vpc-id <vpc-id> --query 'GroupId' --output text)
-aws ec2 create-security-group --group-name aurora-db-sg --description "SG for Aurora DB" --vpc [VPC_ID]
-export SG_ID=[SECURITY_GROUP_ID]
+export VPC_ID="[EKS가 있는 VPC의 ID]"
+export SG_ID=$(aws ec2 create-security-group --group-name aurora-db-sg --description "SG for Aurora DB" --vpc-id $VPC_ID --query 'GroupId' --output text)
 aws ec2 authorize-security-group-ingress --group-id $SG_ID --protocol tcp --port 3306 --cidr 10.0.0.0/16
+aws ec2 authorize-security-group-ingress --group-id $SG_ID --protocol tcp --port 3306 --source-group sg-061574b8485b689ca
 aws ec2 describe-security-groups --group-ids $SG_ID
 
+# Cleaning
+aws ec2 delete-security-group --group-name aurora-db-sg --vpc $VPC_ID
 
 ```
 
 2. Subnet Group 생성
 
 ```bash
+export DB_SUBNET_GROUP=$(aws ec2 describe-subnets --filters "Name=vpc-id,Values=${VPC_ID}" "Name=tag:Name,Values=*Private*" --query "Subnets[].SubnetId" --output text)
 aws rds create-db-subnet-group \
     --db-subnet-group-name aurora-subnet-group \
     --db-subnet-group-description "Subnet group for Aurora DB" \
-    --subnet-ids subnet-123abc subnet-456def
+    --subnet-ids ${DB_SUBNET_GROUP}
 ```
 
 3. Aurora DB Creation
@@ -37,13 +40,14 @@ aws rds create-db-cluster \
     --master-username admin \
     --master-user-password mypassword \
     --vpc-security-group-ids $SG_ID \
-    --db-subnet-group-name aurora-subnet-group
+    --db-subnet-group-name aurora-subnet-group \
+    --enable-iam-database-authentication
 ```
 
 ```bash
 aws rds create-db-instance \
     --db-instance-identifier my-aurora-instance \
-    --db-cluster-identifier my-aurora-cluster2 \
+    --db-cluster-identifier my-aurora-cluster \
     --engine aurora-mysql \
     --db-instance-class db.t3.medium \
     --publicly-accessible \
@@ -51,41 +55,110 @@ aws rds create-db-instance \
     --no-multi-az
 ```
 
-IAM DB 인증이 활성화되지 않은 경우 활성화
+```bash
+export DB_ENDPOINT=$(aws rds describe-db-instances --db-instance-identifier my-aurora-instance --query "DBInstances[].Endpoint.Address" --output text)
+```
+
 
 ```bash
+kubectl run netshoot --rm -it --restart=Never   --image=nicolaka/netshoot --   sh -lc '
+HOST="my-aurora-cluster.cluster-cf03v0vzjps6.us-west-2.rds.amazonaws.com"; PORT=3306;
+echo "== DNS =="; nslookup "$HOST" || dig +short "$HOST";
+echo "== TCP =="
+nc -vz "$HOST" "$PORT" || { echo "TCP 실패"; exit 2; }
+'
+
+
 # Create Database in POD
-kubectl apply -f exterName.yaml
-kubectl apply -f eks-rds.yaml
+# kubectl apply -f ExternalName.yaml
+# kubectl apply -f eks-rds.yaml
 
-kubectl run -it --rm --image=mysql:latest --restart=Never mysql-client -- mysql -h [ENDPOINT] -u dbadmin -pmypassword
+kubectl run -it --rm --image=mysql:latest --restart=Never mysql-client -- mysql -h $DB_ENDPOINT -uadmin -pmypassword
 
-export DB_ENDPOINT=<rds_database_endpoint>
-mysql -h $DB_ENDPOINT -P 3306 -u[MY_ID] -p[MY_PASSWORD]
+
+aws rds describe-db-instances --db-instance-identifier my-aurora-instance --query "DBInstances[].Endpoint.Address" --output text
+
+mysql -h $DB_ENDPOINT -P 3306 -uadmin -ppassword
 ```
 
 ```sql
-CREATE DATABASE dev;
-CREATE TABLE dev.product (prodId VARCHAR(120), prodName VARCHAR(120));
-INSERT INTO dev.product (prodId,prodName) VALUES ('999','Mountain New Bike');
+CREATE DATABASE appdb;
+CREATE TABLE appdb.product (prodId VARCHAR(120), prodName VARCHAR(120));
+INSERT INTO appdb.product (prodId,prodName) VALUES ('999','Mountain New Bike');
 ```
 
 ```sql
-CREATE USER workshop_user IDENTIFIED WITH AWSAuthenticationPlugin AS 'RDS' REQUIRE SSL;
-GRANT USAGE ON *.* TO 'workshop_user'@'%'
-GRANT ALL PRIVILEGES ON dev.* TO 'workshop_user'@'%'
+CREATE USER 'app_iam_user'@'%' IDENTIFIED WITH AWSAuthenticationPlugin AS 'RDS';
+GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX ON appdb.* TO 'app_iam_user'@'%';
 
-select user,plugin,host from mysql.user where user like '%workshop_user%';
-show grants for workshop_user; 
+
+select user,plugin,host from mysql.user where user like '%app_iam_user%';
+show grants for app_iam_user; 
 ```
 
 
-#### 3. Kubernetes에 애플리케이션 배포
+
+
+#### OIDC 연결
+
+```bash
+export CLUSTER_NAME=ekscluster
+export AWS_REGION=us-west-2
+eksctl utils associate-iam-oidc-provider \
+  --cluster $CLUSTER_NAME \
+  --region $AWS_REGION \
+  --approve
+
+aws eks describe-cluster \
+  --name $CLUSTER_NAME --region $AWS_REGION \
+  --query "cluster.identity.oidc.issuer" --output text
+aws iam list-open-id-connect-providers
+```
+
+
+#### IRSA 역할 권한
+
+```bash
+aws rds describe-db-clusters \
+  --db-cluster-identifier my-aurora-cluster \
+  --query "DBClusters[0].DbClusterResourceId" --output text
+```
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    { "Effect": "Allow", "Action": ["rds:GenerateDBAuthToken","rds:DescribeDBClusters"], "Resource": "*" },
+    {
+      "Effect": "Allow",
+      "Action": "rds-db:connect",
+      "Resource": "arn:aws:rds-db:<REGION>:<ACCOUNT_ID>:dbuser:<DBI_RESOURCE_ID>/app_iam_user"
+    }
+  ]
+}
+```
+
+
+
+#### 3. Application Build
+
+```bash
+export AWS_REGION=us-west-2
+export ACCOUNT_ID=''
+aws ecr create-repository --repository-name webapp --region $AWS_REGION --output text > /dev/null
+aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ACCOUNT_ID.dkr.ecr.us-west-2.amazonaws.com
+
+cd 5.Application-Security/app
+docker build -t $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/webapp:1.0.0 .
+docker push $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/webapp:1.0.0
+```
+
+
 
 ```bash
 aws eks update-kubeconfig --region us-east-1 --name eks-demo2
 
-# helm
+# helm install
 curl -sSL https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
 ```
 
