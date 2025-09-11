@@ -1,0 +1,12 @@
+{
+  "name": "eks-aurora-mysql-iam",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "dependencies": {
+    "@aws-sdk/rds-signer": "^3.600.0",
+    "express": "^4.19.2",
+    "mysql2": "^3.10.0"
+  }
+}
