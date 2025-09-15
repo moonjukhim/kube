@@ -204,11 +204,11 @@ sudo cat /var/lib/jenkins/secrets/initialAdminPassword
 
 ```bash
 # 임시폴더 만들기
-sudo mkdir -p /var/lib/jenkins/tmp
-sudo chown jenkins:jenkins /var/lib/jenkins/tmp
+sudo mkdir -p /var/jenkins/tmp
+sudo chown jenkins:jenkins /var/jenkins/tmp
+sudo chmod 700 /var/jenkins/tmp
 
-# systemd로 Jenkins 자바 옵션 오버라이드
-sudo systemctl edit jenkins
+sudo mount -o remount,size=4G /tmp
 ```
 
 ```bash
