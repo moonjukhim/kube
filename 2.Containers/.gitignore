@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+venv/
+.env
+
+# Java
+target/
+*.class
+*.jar
+*.war
+.idea/
+*.iml
+
+# Node
+node_modules/
+.next/
+out/
+.env*.local
+
+# IDE
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+.docker/
+
+# Logs
+*.log
+
