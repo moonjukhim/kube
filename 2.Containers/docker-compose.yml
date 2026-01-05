@@ -1,0 +1,155 @@
+services:
+  # ==================== Databases ====================
+  accounts-db:
+    image: postgres:15-alpine
+    container_name: accounts-db
+    environment:
+      POSTGRES_DB: accounts
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - accounts_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - bank-network
+
+  ledger-db:
+    image: postgres:15-alpine
+    container_name: ledger-db
+    environment:
+      POSTGRES_DB: ledger
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - ledger_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - bank-network
+
+  # ==================== Python Services ====================
+  userservice:
+    build: ./userservice
+    container_name: userservice
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@accounts-db:5432/accounts
+      JWT_SECRET: bank-of-anthos-secret-key
+    depends_on:
+      accounts-db:
+        condition: service_healthy
+    networks:
+      - bank-network
+    restart: unless-stopped
+
+  contacts:
+    build: ./contacts
+    container_name: contacts
+    ports:
+      - "8001:8001"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@accounts-db:5432/accounts
+    depends_on:
+      accounts-db:
+        condition: service_healthy
+    networks:
+      - bank-network
+    restart: unless-stopped
+
+  # ==================== Java Services ====================
+  ledger-writer:
+    build: ./ledger-writer
+    container_name: ledger-writer
+    ports:
+      - "8083:8083"
+    environment:
+      DB_HOST: ledger-db
+      DB_PORT: 5432
+      DB_NAME: ledger
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+    depends_on:
+      ledger-db:
+        condition: service_healthy
+    networks:
+      - bank-network
+    restart: unless-stopped
+
+  balance-reader:
+    build: ./balance-reader
+    container_name: balance-reader
+    ports:
+      - "8081:8081"
+    environment:
+      DB_HOST: ledger-db
+      DB_PORT: 5432
+      DB_NAME: ledger
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+    depends_on:
+      ledger-db:
+        condition: service_healthy
+      ledger-writer:
+        condition: service_started
+    networks:
+      - bank-network
+    restart: unless-stopped
+
+  transaction-history:
+    build: ./transaction-history
+    container_name: transaction-history
+    ports:
+      - "8082:8082"
+    environment:
+      DB_HOST: ledger-db
+      DB_PORT: 5432
+      DB_NAME: ledger
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+    depends_on:
+      ledger-db:
+        condition: service_healthy
+      ledger-writer:
+        condition: service_started
+    networks:
+      - bank-network
+    restart: unless-stopped
+
+  # ==================== Frontend ====================
+  frontend:
+    build: ./frontend
+    container_name: frontend
+    ports:
+      - "3000:3000"
+    environment:
+      USERSERVICE_URL: http://userservice:8000
+      CONTACTS_URL: http://contacts:8001
+      BALANCE_READER_URL: http://balance-reader:8081
+      TRANSACTION_HISTORY_URL: http://transaction-history:8082
+      LEDGER_WRITER_URL: http://ledger-writer:8083
+    depends_on:
+      - userservice
+      - contacts
+      - ledger-writer
+      - balance-reader
+      - transaction-history
+    networks:
+      - bank-network
+    restart: unless-stopped
+
+volumes:
+  accounts_data:
+  ledger_data:
+
+networks:
+  bank-network:
+    driver: bridge
+
