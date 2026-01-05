@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: transaction-history
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:ledger-db}:${DB_PORT:5432}/${DB_NAME:ledger}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+
+server:
+  port: 8082
+
