@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: balance-reader
+  namespace: bank-of-msa
+  labels:
+    app: balance-reader
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: balance-reader
+  template:
+    metadata:
+      labels:
+        app: balance-reader
+    spec:
+      containers:
+        - name: balance-reader
+          image: bank-of-anthos/balance-reader:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8081
+          env:
+            - name: DB_HOST
+              value: "ledger-db"
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_NAME
+              value: "ledger"
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: db-credentials
+                  key: DB_USERNAME
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-credentials
+                  key: DB_PASSWORD
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8081
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8081
+            initialDelaySeconds: 60
+            periodSeconds: 15
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: balance-reader
+  namespace: bank-of-msa
+spec:
+  selector:
+    app: balance-reader
+  ports:
+    - port: 8081
+      targetPort: 8081
+  type: ClusterIP
